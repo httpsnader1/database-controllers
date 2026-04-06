@@ -215,7 +215,19 @@
                             <input type="checkbox" @change="toggleAll()" :checked="selectedIds.length === rowsOnPage.length && rowsOnPage.length > 0" class="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-600 transition cursor-pointer">
                         </th>
                         @foreach($columns as $col)
-                            <th class="px-6 py-4 whitespace-nowrap font-mono border-r border-slate-100 last:border-0 text-center">{{ $col }}</th>
+                            <th class="px-6 py-4 whitespace-nowrap font-mono border-r border-slate-100 last:border-0 text-center relative group p-0">
+                                @php
+                                    $isCurrentSort = ($sortBy == $col);
+                                    $nextDir = ($isCurrentSort && $sortDir == 'asc') ? 'desc' : 'asc';
+                                @endphp
+                                <a href="{{ request()->fullUrlWithQuery(['sort_by' => $col, 'sort_dir' => $nextDir]) }}" class="flex items-center justify-center w-full h-full px-6 py-4 hover:bg-slate-100/50 transition-colors">
+                                    <span class="{{ $isCurrentSort ? 'text-indigo-600 font-black' : 'text-slate-500' }}">{{ $col }}</span>
+                                    <span class="ml-2 flex flex-col text-[8px]">
+                                        <i class="fa-solid fa-caret-up {{ $isCurrentSort && $sortDir == 'asc' ? 'text-indigo-600 scale-125' : 'text-slate-300 opacity-0 group-hover:opacity-100' }}"></i>
+                                        <i class="fa-solid fa-caret-down {{ $isCurrentSort && $sortDir == 'desc' ? 'text-indigo-600 scale-125' : 'text-slate-300 opacity-0 group-hover:opacity-100' }}"></i>
+                                    </span>
+                                </a>
+                            </th>
                         @endforeach
                         <th class="px-6 py-4 text-center sticky right-0 bg-slate-50 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.05)] border-l border-slate-200">Actions</th>
                     </tr>

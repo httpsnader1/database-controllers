@@ -411,15 +411,22 @@ class DatabaseController extends Controller
             }
         }
 
-        $perPage = (int) $request->input('per_page', config('database-controllers.default_per_page', 20));
-        $perPageOptions = config('database-controllers.per_page_options', [10, 20, 50, 100]);
-
-        $rows = $query->paginate($perPage)->appends($request->all());
+        $perPage = (int) $request->input('per_page', config('database-controllers.default_per_page', 10));
+        $perPageOptions = config('database-controllers.per_page_options', [5, 10, 20, 50, 100, 500]);
 
         $primaryKey = $this->getPrimaryKey($table);
         if (!$primaryKey) {
-            $primaryKey = isset($columns[0]) ? $columns[0] : null;
+            $primaryKey = isset($columns[0]) ? $columns[0] : 'id';
         }
+
+        $sortBy = $request->input('sort_by', $primaryKey);
+        $sortDir = $request->input('sort_dir', 'desc');
+
+        if ($sortBy && Schema::hasColumn($table, $sortBy)) {
+            $query->orderBy($sortBy, $sortDir);
+        }
+
+        $rows = $query->paginate($perPage)->appends($request->all());
 
         $columnTypes = [];
         foreach ($columns as $col) {
@@ -442,7 +449,9 @@ class DatabaseController extends Controller
             'primaryKey', 
             'columnTypes',
             'perPage',
-            'perPageOptions'
+            'perPageOptions',
+            'sortBy',
+            'sortDir'
         ));
     }
 
