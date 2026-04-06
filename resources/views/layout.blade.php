@@ -9,17 +9,98 @@
     <style>
         [x-cloak] { display: none !important; }
         ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* Dark Mode Core */
+        .dark {
+            color-scheme: dark;
+        }
+        .dark ::-webkit-scrollbar-track { background: #020617; }
+        .dark ::-webkit-scrollbar-thumb { background: #1e293b; }
+        .dark ::-webkit-scrollbar-thumb:hover { background: #334155; }
+
+        /* Global Dark Overrides */
+        .dark .bg-white { background-color: #0f172a !important; }
+        .dark .bg-slate-50 { background-color: #020617 !important; }
+        .dark .text-slate-900, .dark .text-slate-800, .dark .text-slate-700 { color: #f8fafc !important; }
+        .dark .text-slate-600, .dark .text-slate-500 { color: #cbd5e1 !important; }
+        
+        /* Comprehensive Border Fix */
+        .dark .border,
+        .dark .border-t,
+        .dark .border-b,
+        .dark .border-l,
+        .dark .border-r,
+        .dark .border-slate-300,
+        .dark .border-slate-200,
+        .dark .border-slate-100,
+        .dark .border-slate-50 { 
+            border-color: rgba(255, 255, 255, 0.1) !important; 
+        }
+        
+        /* Enhanced Contrast for Cards */
+        .dark .rounded-xl.border-slate-200,
+        .dark .rounded-2xl.border-slate-200,
+        .dark .rounded-3xl.border-slate-200 {
+             border-color: rgba(255, 255, 255, 0.15) !important;
+        }
+
+        .dark .bg-slate-100 { background-color: #1e293b !important; }
+        .dark .hover\:bg-slate-50:hover, 
+        .dark .hover\:bg-slate-100:hover,
+        .dark .hover\:bg-slate-100\/50:hover { 
+            background-color: rgba(255, 255, 255, 0.05) !important; 
+        }
+        
+        .dark header { background-color: #0f172a !important; border-color: rgba(255, 255, 255, 0.08) !important; border-bottom-width: 1px; }
+        .dark aside { background-color: #020617 !important; border-color: rgba(255, 255, 255, 0.08) !important; }
+        .dark .sticky { background-color: #0f172a !important; z-index: 20; color: #f8fafc !important; }
+        .dark thead.sticky, .dark thead .sticky { background-color: #1e293b !important; }
+        
+        /* Enhanced Buttons & Inputs */
+        .dark .bg-indigo-600 { background-color: #4f46e5 !important; }
+        .dark .hover\:bg-indigo-700:hover { background-color: #4338ca !important; box-shadow: 0 0 15px rgba(99, 102, 241, 0.4) !important; }
+        .dark button.bg-white { background-color: #1e293b !important; border-color: rgba(255, 255, 255, 0.15) !important; color: #f1f5f9 !important; }
+        .dark button.bg-white:hover { background-color: #334155 !important; border-color: #6366f1 !important; box-shadow: 0 0 10px rgba(255, 255, 255, 0.05) !important; }
+        
+        .dark input, .dark select, .dark textarea { background-color: #0f172a !important; border-color: rgba(255, 255, 255, 0.1) !important; color: #f1f5f9 !important; }
+        .dark input:focus, .dark select:focus { border-color: #6366f1 !important; ring: 2px #6366f1 !important; }
+        
+        /* Table & Data Enhancements */
+        .dark thead { background-color: #1e293b !important; border-bottom: 2px solid rgba(255, 255, 255, 0.05) !important; }
+        .dark tr { border-bottom: 1px solid rgba(255, 255, 255, 0.03) !important; }
+        .dark tr:hover { background-color: rgba(255, 255, 255, 0.02) !important; }
+        .dark .bg-slate-50\/50 { background-color: rgba(2, 6, 17, 0.4) !important; }
+        .dark td.sticky { background-color: #0f172a !important; box-shadow: -4px 0 10px rgba(0,0,0,0.4) !important; }
+        .dark th.sticky { background-color: #1e293b !important; box-shadow: -4px 0 10px rgba(0,0,0,0.4) !important; }
+        
+        /* Specialized Components */
+        .dark .bg-indigo-50 { background-color: rgba(99, 102, 241, 0.15) !important; color: #a5b4fc !important; border: 1px solid rgba(99, 102, 241, 0.2) !important; }
+        .dark .bg-rose-50 { background-color: rgba(244, 63, 94, 0.15) !important; color: #fda4af !important; border: 1px solid rgba(244, 63, 94, 0.2) !important; }
+        .dark .bg-emerald-50 { background-color: rgba(16, 185, 129, 0.1) !important; color: #6ee7b7 !important; border: 1px solid rgba(16, 185, 129, 0.2) !important; }
+
+        /* Shadows & Transitions */
+        .dark .shadow-sm, .dark .shadow-md, .dark .shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.4) !important; }
+        
+        * {
+            transition: background-color 300ms ease, border-color 300ms ease, color 300ms ease, box-shadow 300ms ease;
+        }
     </style>
     <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
 </head>
-<body class="bg-slate-50 font-sans text-slate-900" x-data="{ 
-    sidebarOpen: true, 
-    tableSearch: '', 
-    allTables: {{ json_encode($tables ?? $allTables ?? []) }} 
-}">
+<body class="bg-slate-50 font-sans text-slate-900 transition-colors duration-300" 
+    x-data="{ 
+        sidebarOpen: true, 
+        tableSearch: '', 
+        allTables: {{ json_encode($tables ?? $allTables ?? []) }},
+        darkMode: localStorage.getItem('db_ctrl_dark') === 'true',
+        toggleMode() {
+            this.darkMode = !this.darkMode;
+            localStorage.setItem('db_ctrl_dark', this.darkMode);
+        }
+    }" :class="darkMode ? 'dark bg-slate-950 text-slate-100' : ''">
     <div class="h-screen flex overflow-hidden">
         
         <!-- Sidebar -->
@@ -110,6 +191,12 @@
                 </div>
 
                 <div class="flex items-center space-x-4">
+                    <button @click="toggleMode()" class="p-2 w-10 h-10 rounded-xl border border-slate-200 transition-all duration-300 hover:border-indigo-500 hover:bg-slate-50 relative group overflow-hidden" :class="darkMode ? 'bg-slate-800 border-slate-700 hover:bg-slate-700' : 'bg-white'">
+                        <div class="relative w-full h-full">
+                            <i class="fa-solid fa-sun absolute inset-0 flex items-center justify-center text-amber-500 transition-all duration-500 transform" :class="darkMode ? '-translate-y-full opacity-0' : 'translate-y-0 opacity-100'"></i>
+                            <i class="fa-solid fa-moon absolute inset-0 flex items-center justify-center text-indigo-400 transition-all duration-500 transform" :class="darkMode ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'"></i>
+                        </div>
+                    </button>
                     @if(!empty(config('database-controllers.password')))
                         <form action="{{ route('database-controllers.logout') }}" method="POST">
                             @csrf

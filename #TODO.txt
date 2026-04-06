@@ -3,5 +3,3 @@
 • Download Backup As ZIP
 • Import Backup As ZIP Or SQL
 • Increase Timeout When Import
-• Add Multi Language For All World Language
-• Add Dark/Light Mode
