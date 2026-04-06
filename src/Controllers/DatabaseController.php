@@ -81,7 +81,8 @@ class DatabaseController extends Controller
                 }
                 return [
                     'name' => $table,
-                    'count' => $count
+                    'count' => $count,
+                    'formatted_count' => number_format($count)
                 ];
             }, $tables);
 
@@ -111,7 +112,7 @@ class DatabaseController extends Controller
         }
 
         $stats = [
-            'Total Tables' => count($tables),
+            'Total Tables' => number_format(count($tables)),
             'Total Records' => number_format($totalRows),
             'Database Size' => $this->getDatabaseSize(),
             'Last Backup' => $this->getLastBackupDate(),
@@ -132,7 +133,7 @@ class DatabaseController extends Controller
                 if ($file !== '.' && $file !== '..') {
                     $backups[] = [
                         'name' => $file,
-                        'size' => round(filesize($backupPath . '/' . $file) / 1024, 2) . ' KB',
+                        'size' => $this->formatBytes(filesize($backupPath . '/' . $file)),
                         'date' => date('Y-m-d H:i:s', filemtime($backupPath . '/' . $file))
                     ];
                 }
@@ -341,11 +342,22 @@ class DatabaseController extends Controller
         try {
             if (config('database.default') === 'mysql') {
                 $dbName = DB::connection()->getDatabaseName();
-                $size = DB::select("SELECT SUM(data_length + index_length) / 1024 / 1024 AS size FROM information_schema.TABLES WHERE table_schema = ?", [$dbName]);
-                return round($size[0]->size ?? 0, 2) . ' MB';
+                $size = DB::select("SELECT SUM(data_length + index_length) AS size FROM information_schema.TABLES WHERE table_schema = ?", [$dbName]);
+                return $this->formatBytes($size[0]->size ?? 0);
             }
         } catch (\Exception $e) {}
         return 'N/A';
+    }
+
+    private function formatBytes($bytes, $precision = 2)
+    {
+        $units = ['B', 'KB', 'MB', 'GB', 'TB'];
+        $bytes = max($bytes, 0);
+        $pow = floor(($bytes ? log($bytes) : 0) / log(1024));
+        $pow = min($pow, count($units) - 1);
+        $bytes /= (1 << (10 * $pow));
+
+        return round($bytes, $precision) . ' ' . $units[$pow];
     }
 
     private function getLastBackupDate()

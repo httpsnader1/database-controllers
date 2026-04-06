@@ -219,9 +219,16 @@
             </table>
         </div>
         
-        <!-- Pagination -->
-        <div class="px-6 py-4 bg-slate-50 border-t border-slate-100">
-            {{ $rows->links() }}
+        <!-- Pagination and Summary -->
+        <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="text-xs font-bold text-slate-500">
+                Showing <span class="text-indigo-600">{{ number_format($rows->firstItem()) }}</span> 
+                to <span class="text-indigo-600">{{ number_format($rows->lastItem()) }}</span> 
+                of <span class="text-slate-800">{{ number_format($rows->total()) }}</span> results
+            </div>
+            <div>
+                {{ $rows->onEachSide(1)->links('database-controllers::pagination') }}
+            </div>
         </div>
     </div>
 

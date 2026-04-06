@@ -1,3 +1,4 @@
+• Save Backup FOlder In Storage And Exlude Json In Folder Called `DatabaseControllers
 • Make Multi Delete Rows
 • Export Table
 • When Take Backup Export Database As Structure Or Structure With Data

@@ -80,7 +80,7 @@
                                 >
                                     <i class="fa-solid fa-table w-4 text-center mr-2 opacity-50 group-hover:opacity-100 group-hover:text-indigo-400"></i>
                                     <span x-text="table.name" class="truncate flex-grow"></span>
-                                    <span x-text="table.count" class="text-[9px] font-bold opacity-40 group-hover:opacity-100 ml-2 bg-slate-800 px-1.5 py-0.5 rounded text-slate-300"></span>
+                                    <span x-text="table.formatted_count" class="text-[9px] font-bold opacity-40 group-hover:opacity-100 ml-2 bg-slate-800 px-1.5 py-0.5 rounded text-slate-300"></span>
                                     <i class="fa-solid fa-chevron-right ml-2 text-[8px] opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-1 group-hover:translate-x-0"></i>
                                 </a>
                             </template>
