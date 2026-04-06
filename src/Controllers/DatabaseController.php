@@ -411,7 +411,10 @@ class DatabaseController extends Controller
             }
         }
 
-        $rows = $query->paginate(20)->appends($request->all());
+        $perPage = (int) $request->input('per_page', config('database-controllers.default_per_page', 20));
+        $perPageOptions = config('database-controllers.per_page_options', [10, 20, 50, 100]);
+
+        $rows = $query->paginate($perPage)->appends($request->all());
 
         $primaryKey = $this->getPrimaryKey($table);
         if (!$primaryKey) {
@@ -429,7 +432,18 @@ class DatabaseController extends Controller
 
         $allTables = $tables; // For layout consistency
 
-        return view('database-controllers::show', compact('tables', 'allTables', 'table', 'columns', 'rows', 'filters', 'primaryKey', 'columnTypes'));
+        return view('database-controllers::show', compact(
+            'tables', 
+            'allTables', 
+            'table', 
+            'columns', 
+            'rows', 
+            'filters', 
+            'primaryKey', 
+            'columnTypes',
+            'perPage',
+            'perPageOptions'
+        ));
     }
 
     public function store(Request $request, $table)

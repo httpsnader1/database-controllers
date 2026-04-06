@@ -115,6 +115,18 @@
         </nav>
         
         <div class="flex items-center space-x-3">
+             <div class="flex items-center bg-white border border-slate-200 rounded-lg px-3 py-2 shadow-sm">
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mr-2 border-r border-slate-100 pr-2">Rows per page</span>
+                <select 
+                    class="bg-transparent text-sm font-bold text-slate-700 outline-none cursor-pointer pr-4"
+                    @change="let url = new URL(window.location.href); url.searchParams.set('per_page', $event.target.value); window.location.href = url.toString();"
+                >
+                    @foreach($perPageOptions as $option)
+                        <option value="{{ $option }}" {{ (int)$perPage === (int)$option ? 'selected' : '' }}>{{ $option }}</option>
+                    @endforeach
+                </select>
+             </div>
+
              <button x-show="selectedIds.length > 0" @click="showBulkDeleteModal = true" class="inline-flex items-center justify-center px-4 py-2 bg-rose-50 border border-rose-200 text-rose-600 rounded-lg text-sm font-bold hover:bg-rose-100 transition shadow-sm active:scale-95 animate-fadeIn" x-transition>
                 <i class="fa-solid fa-trash-can mr-2 text-xs"></i> 
                 <span>Delete Selected (<span x-text="selectedIds.length"></span>)</span>
