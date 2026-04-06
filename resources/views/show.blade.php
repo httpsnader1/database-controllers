@@ -1,0 +1,385 @@
+@extends('database-controllers::layout')
+
+@section('title', "Table: {$table}")
+
+@section('content')
+<div x-data="{ 
+    showAddModal: false, 
+    showEditModal: false, 
+    showDeleteModal: false,
+    showViewModal: false,
+    showFilters: {{ count($filters) > 0 ? 'true' : 'false' }},
+    viewingRow: {},
+    renderValue(val) {
+        if (val === null || val === undefined) return 'NULL';
+        try {
+            if (typeof val === 'string' && (val.startsWith('{') || val.startsWith('['))) {
+                return JSON.stringify(JSON.parse(val), null, 4);
+            }
+            if (typeof val === 'object') {
+                return JSON.stringify(val, null, 4);
+            }
+        } catch (e) {}
+        return val;
+    },
+    editingRow: {},
+    columnTypes: {{ json_encode($columnTypes ?? []) }},
+    jsonFields: {},
+    initJsonField(col, val = null) {
+        if (this.jsonFields[col]) return;
+        let initial = [];
+        try {
+            if (val && typeof val === 'string' && (val.startsWith('{') || val.startsWith('['))) {
+                let parsed = JSON.parse(val);
+                Object.keys(parsed).forEach(k => initial.push({key: k, value: parsed[k]}));
+            } else if (val && typeof val === 'object') {
+                Object.keys(val).forEach(k => initial.push({key: k, value: val[k]}));
+            }
+        } catch (e) {}
+        if (initial.length === 0) initial.push({key: '', value: ''});
+        this.jsonFields[col] = initial;
+    },
+    addJsonEntry(col) {
+        this.jsonFields[col].push({key: '', value: ''});
+    },
+    removeJsonEntry(col, index) {
+        this.jsonFields[col].splice(index, 1);
+        if (this.jsonFields[col].length === 0) this.addJsonEntry(col);
+    },
+    getJsonString(col) {
+        let obj = {};
+        if (!this.jsonFields[col]) return '{}';
+        this.jsonFields[col].forEach(item => {
+            if (item.key) obj[item.key] = item.value;
+        });
+        return JSON.stringify(obj);
+    },
+    deletingId: null,
+    filters: {{ json_encode($filters) }},
+    operators: ['=', '!=', '>', '<', '>=', '<=', 'LIKE', 'IN', 'IS NULL', 'IS NOT NULL'],
+    init() {
+        this.$watch('showEditModal', (val) => {
+            if (val) {
+                // Clear existing jsonFields before re-init
+                this.jsonFields = {};
+                Object.keys(this.columnTypes).forEach(col => {
+                    if (this.columnTypes[col] === 'json') {
+                        this.initJsonField(col, this.editingRow[col]);
+                    }
+                });
+            }
+        });
+        this.$watch('showAddModal', (val) => {
+            if (val) {
+                this.jsonFields = {};
+                 Object.keys(this.columnTypes).forEach(col => {
+                    if (this.columnTypes[col] === 'json') {
+                        this.initJsonField(col, null);
+                    }
+                });
+            }
+        });
+    }
+}" class="space-y-6">
+
+    <!-- Breadcrumbs and Actions -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <nav class="flex items-center text-sm font-medium text-slate-500 whitespace-nowrap overflow-x-auto pb-2 md:pb-0">
+            <a href="{{ route('database-controllers.index') }}" class="hover:text-indigo-600 flex items-center">
+                <i class="fa-solid fa-home mr-1 text-slate-400"></i> Dashboard
+            </a>
+            <i class="fa-solid fa-chevron-right mx-2 text-xs text-slate-300"></i>
+            <span class="text-slate-800 font-bold bg-indigo-50 px-2 py-1 rounded border border-indigo-100 font-mono text-[11px] uppercase tracking-wider">{{ $table }}</span>
+        </nav>
+        
+        <div class="flex items-center space-x-3">
+             <button @click="showFilters = !showFilters" class="inline-flex items-center justify-center px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg text-sm font-bold hover:bg-slate-50 transition shadow-sm active:scale-95" :class="showFilters ? 'ring-2 ring-indigo-500 border-indigo-200' : ''">
+                <i class="fa-solid fa-filter mr-2 text-xs" :class="showFilters ? 'text-indigo-600' : 'text-slate-400'"></i> 
+                <span>Filters</span>
+                @if(count($filters) > 0)
+                    <span class="ml-2 bg-indigo-600 text-white text-[10px] px-1.5 py-0.5 rounded-full">{{ count($filters) }}</span>
+                @endif
+            </button>
+             <button @click="showAddModal = true" class="flex-1 md:flex-none inline-flex items-center justify-center px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold hover:bg-indigo-700 transition shadow-lg active:scale-95 shadow-indigo-200">
+                <i class="fa-solid fa-plus mr-2 text-xs"></i> Add Record
+            </button>
+        </div>
+    </div>
+
+    <!-- Filtering Section -->
+    <div x-show="showFilters" x-transition.origin.top.duration.400ms class="bg-white rounded-xl shadow-md border border-indigo-100 p-6 overflow-hidden">
+        <form method="GET" action="{{ route('database-controllers.table.show', $table) }}">
+            <div class="flex items-center justify-between mb-4 border-b pb-3 border-slate-100">
+                <h3 class="font-bold text-slate-800 flex items-center">
+                    <i class="fa-solid fa-filter mr-2 text-indigo-500"></i>
+                    Filters
+                </h3>
+                <button type="button" @click="filters.push({column: '', operator: '=', value: ''})" class="text-indigo-600 text-xs font-bold flex items-center hover:bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-100 transition">
+                    <i class="fa-solid fa-plus mr-1 text-[10px]"></i> Add Filter
+                </button>
+            </div>
+            
+            <div class="space-y-3">
+                <template x-for="(filter, index) in filters" :key="index">
+                    <div class="flex flex-col md:flex-row items-start md:items-center gap-3 bg-slate-50 p-3 rounded-lg border border-slate-100 relative group animate-fadeIn">
+                        <div class="w-full md:w-1/3">
+                            <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1 ml-1">Column</label>
+                            <select :name="'filters['+index+'][column]'" x-model="filter.column" class="w-full text-sm bg-white border border-slate-200 rounded-md py-1.5 px-3 focus:ring-2 focus:ring-indigo-500 font-mono">
+                                <option value="">Select Column</option>
+                                @foreach($columns as $col)
+                                    <option value="{{ $col }}">{{ $col }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="w-full md:w-1/4">
+                             <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1 ml-1">Operator</label>
+                            <select :name="'filters['+index+'][operator]'" x-model="filter.operator" class="w-full text-sm bg-white border border-slate-200 rounded-md py-1.5 px-3 focus:ring-2 focus:ring-indigo-500">
+                                <template x-for="op in operators">
+                                    <option :value="op" x-text="op" :selected="filter.operator == op"></option>
+                                </template>
+                            </select>
+                        </div>
+                        <div class="w-full md:w-1/3">
+                            <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1 ml-1">Value</label>
+                            <input type="text" :name="'filters['+index+'][value]'" x-model="filter.value" class="w-full text-sm bg-white border border-slate-200 rounded-md py-1.5 px-3 focus:ring-2 focus:ring-indigo-500" placeholder="Search value...">
+                        </div>
+                        <button type="button" @click="filters.splice(index, 1)" class="md:mt-5 text-slate-400 hover:text-red-500 transition-colors">
+                            <i class="fa-solid fa-circle-xmark text-lg"></i>
+                        </button>
+                    </div>
+                </template>
+
+                <div x-show="filters.length === 0" class="py-4 text-center text-slate-400 italic text-sm">
+                    No active filters. Click "+ Add Filter" to narrow down results.
+                </div>
+
+                <div x-show="filters.length > 0" class="flex justify-end pt-4 space-x-3 items-center" x-transition>
+                    @if(count($filters) > 0)
+                        <a href="{{ route('database-controllers.table.show', $table) }}" class="px-5 py-2 text-xs font-bold bg-rose-50 text-rose-500 border border-rose-100 rounded-lg hover:bg-rose-500 hover:text-white hover:border-rose-500 transition-all duration-300 uppercase tracking-widest active:scale-95">
+                            Clear Results
+                        </a>
+                    @endif
+                    <button type="submit" class="inline-flex items-center px-8 py-2 bg-slate-800 text-white rounded-lg text-sm font-bold hover:bg-slate-900 transition shadow-sm active:scale-95">
+                        <i class="fa-solid fa-magnifying-glass mr-2 text-xs"></i> Apply Filters
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Table Data Section -->
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="overflow-x-auto min-h-[400px]">
+            <table class="w-full text-left">
+                <thead class="bg-slate-50 border-b border-slate-200 text-xs uppercase text-slate-500 font-bold tracking-wider sticky top-0 bg-white">
+                    <tr>
+                        @foreach($columns as $col)
+                            <th class="px-6 py-4 whitespace-nowrap font-mono border-r border-slate-100 last:border-0 text-center">{{ $col }}</th>
+                        @endforeach
+                        <th class="px-6 py-4 text-center sticky right-0 bg-slate-50 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.05)] border-l border-slate-200">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    @forelse($rows as $row)
+                        <tr class="hover:bg-slate-50 transition-all duration-200 group cursor-pointer" @click="viewingRow = {{ json_encode($row) }}; showViewModal = true">
+                            @foreach($columns as $col)
+                                <td class="px-6 py-4 text-sm text-slate-600 border-r border-slate-50 last:border-0 text-center @if(strlen($row->$col ?? '') > 100) max-w-xs truncate @endif" title="{{ $row->$col ?? '' }}">
+                                    @if(is_null($row->$col))
+                                        <span class="text-slate-300 italic text-[10px]">NULL</span>
+                                    @else
+                                        {{ Str::limit($row->$col ?? '', 100) }}
+                                    @endif
+                                </td>
+                            @endforeach
+                            <td class="px-6 py-4 text-center sticky right-0 bg-white group-hover:bg-slate-50 transition shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.05)] border-l border-slate-100" @click.stop="">
+                                <div class="flex items-center justify-center space-x-2">
+                                    <button @click="viewingRow = {{ json_encode($row) }}; showViewModal = true" class="p-2 text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-md transition" title="View Details">
+                                        <i class="fa-solid fa-eye"></i>
+                                    </button>
+                                    <button @click="editingRow = {{ json_encode($row) }}; showEditModal = true" class="p-2 text-indigo-400 hover:bg-indigo-100 rounded-md transition" title="Edit">
+                                        <i class="fa-solid fa-pen-to-square"></i>
+                                    </button>
+                                    <button @click="deletingId = '{{ $row->$primaryKey }}'; showDeleteModal = true" class="p-2 text-red-500 hover:bg-red-100 rounded-md transition" title="Delete">
+                                        <i class="fa-solid fa-trash-can"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="{{ count($columns) + 1 }}" class="px-6 py-20 text-center">
+                                <div class="flex flex-col items-center">
+                                    <i class="fa-solid fa-database text-4xl text-slate-200 mb-3"></i>
+                                    <p class="text-slate-400 font-medium italic">No rows found in this table that match your criteria.</p>
+                                </div>
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination -->
+        <div class="px-6 py-4 bg-slate-50 border-t border-slate-100">
+            {{ $rows->links() }}
+        </div>
+    </div>
+
+    <!-- MODALS -->
+
+    <!-- View Row Modal -->
+    <div x-show="showViewModal" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" @keydown.escape.window="showViewModal = false" style="margin-top: 0 !important;">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col overflow-hidden animate-fadeIn" @click.away="showViewModal = false">
+            <div class="p-6 border-b border-slate-100 flex items-center justify-between bg-indigo-600 text-white">
+                <h3 class="text-xl font-bold flex items-center">
+                    <i class="fa-solid fa-circle-info mr-3 text-indigo-300"></i>
+                    Record Details
+                </h3>
+                <button @click="showViewModal = false" class="text-indigo-200 hover:text-white transition"><i class="fa-solid fa-times text-xl"></i></button>
+            </div>
+            <div class="p-0 overflow-y-auto flex-grow bg-slate-50/50">
+                <table class="w-full text-sm">
+                    <tbody>
+                        @foreach($columns as $col)
+                            <tr class="border-b border-slate-100 last:border-0 hover:bg-white transition-colors">
+                                <td class="px-6 py-4 font-bold text-slate-500 bg-slate-50 w-1/3 uppercase text-[10px] tracking-widest border-r border-slate-100">
+                                    {{ $col }}
+                                </td>
+                                <td class="px-6 py-4 text-slate-800 font-mono text-xs break-all whitespace-pre-wrap leading-relaxed shadow-inner bg-slate-50/50" x-text="renderValue(viewingRow['{{ $col }}'])">
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+            <div class="p-4 border-t border-slate-100 flex justify-end bg-white">
+                <button @click="showViewModal = false" class="px-8 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-bold hover:bg-indigo-700 transition shadow-lg">Close Details</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Row Modal -->
+    <div x-show="showAddModal" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm" @keydown.escape.window="showAddModal = false" style="margin-top: 0 !important;">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden animate-fadeIn" @click.away="showAddModal = false">
+            <div class="p-6 border-b border-slate-100 flex items-center justify-between bg-indigo-600 text-white">
+                <h3 class="text-xl font-bold flex items-center"><i class="fa-solid fa-plus-circle mr-2"></i> Add New Record to <span class="ml-2 font-mono underline">{{ $table }}</span></h3>
+                <button @click="showAddModal = false" class="text-indigo-200 hover:text-white transition"><i class="fa-solid fa-times text-xl"></i></button>
+            </div>
+            <form action="{{ route('database-controllers.table.store', $table) }}" method="POST" class="flex flex-col flex-grow overflow-hidden">
+                @csrf
+                <div class="p-6 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-4">
+                    @foreach($columns as $col)
+                        @if($col !== $primaryKey)
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1 font-mono">{{ $col }}</label>
+                                @if($col === 'password')
+                                    <input type="password" name="{{ $col }}" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:bg-white transition text-sm" placeholder="Set password...">
+                                @elseif(($columnTypes[$col] ?? '') === 'json')
+                                    <div x-init="initJsonField('{{ $col }}')" class="space-y-2 p-3 bg-slate-50 border border-slate-200 rounded-lg">
+                                        <template x-for="(entry, index) in jsonFields['{{ $col }}']">
+                                            <div class="flex space-x-2">
+                                                <input type="text" x-model="entry.key" class="w-1/3 bg-white border border-slate-200 rounded-md px-2 py-1.5 text-xs font-bold" placeholder="Key">
+                                                <input type="text" x-model="entry.value" class="flex-grow bg-white border border-slate-200 rounded-md px-2 py-1.5 text-xs" placeholder="Value">
+                                                <button type="button" @click="removeJsonEntry('{{ $col }}', index)" class="text-rose-400 hover:text-rose-600 px-1"><i class="fa-solid fa-times"></i></button>
+                                            </div>
+                                        </template>
+                                        <button type="button" @click="addJsonEntry('{{ $col }}')" class="w-full py-1.5 mt-1 border-2 border-dashed border-slate-200 text-slate-400 hover:text-indigo-500 hover:border-indigo-200 rounded-lg text-[10px] font-bold uppercase transition">
+                                            <i class="fa-solid fa-plus mr-1"></i> Add Entry
+                                        </button>
+                                        <input type="hidden" name="{{ $col }}" :value="getJsonString('{{ $col }}')">
+                                    </div>
+                                @else
+                                    <input type="text" name="{{ $col }}" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:bg-white transition text-sm">
+                                @endif
+                            </div>
+                        @endif
+                    @endforeach
+                </div>
+                <div class="p-6 border-t border-slate-100 flex justify-end space-x-3 bg-slate-50">
+                    <button type="button" @click="showAddModal = false" class="px-6 py-2 text-sm font-bold text-slate-500 hover:text-slate-700 transition">Cancel</button>
+                    <button type="submit" class="px-8 py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold hover:bg-indigo-700 transition shadow-lg">Save Record</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Row Modal -->
+    <div x-show="showEditModal" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm" @keydown.escape.window="showEditModal = false" style="margin-top: 0 !important;">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden animate-fadeIn" @click.away="showEditModal = false">
+            <div class="p-6 border-b border-slate-100 flex items-center justify-between bg-indigo-700 text-white">
+                <h3 class="text-xl font-bold flex items-center"><i class="fa-solid fa-pen-to-square mr-2"></i> Edit Record #<span x-text="editingRow['{{ $primaryKey }}']" class="ml-1"></span></h3>
+                <button @click="showEditModal = false" class="text-indigo-200 hover:text-white transition"><i class="fa-solid fa-times text-xl"></i></button>
+            </div>
+            <form :action="'{{ route('database-controllers.table.update', [$table, 'ID']) }}'.replace('ID', editingRow['{{ $primaryKey }}'])" method="POST" class="flex flex-col flex-grow overflow-hidden">
+                @csrf
+                @method('PUT')
+                <div class="p-6 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-4">
+                    @foreach($columns as $col)
+                        @if($col !== $primaryKey)
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1 ml-1 font-mono">{{ $col }}</label>
+                                @if($col === 'password')
+                                     <input type="password" name="{{ $col }}" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:bg-white transition text-sm" placeholder="Leave empty to keep current password">
+                                @elseif(($columnTypes[$col] ?? '') === 'json')
+                                    <div x-init="initJsonField('{{ $col }}', editingRow['{{ $col }}'])" class="space-y-2 p-3 bg-slate-50 border border-slate-200 rounded-lg">
+                                        <template x-for="(entry, index) in jsonFields['{{ $col }}']">
+                                            <div class="flex space-x-2">
+                                                <input type="text" x-model="entry.key" class="w-1/3 bg-white border border-slate-200 rounded-md px-2 py-1.5 text-xs font-bold" placeholder="Key">
+                                                <input type="text" x-model="entry.value" class="flex-grow bg-white border border-slate-200 rounded-md px-2 py-1.5 text-xs" placeholder="Value">
+                                                <button type="button" @click="removeJsonEntry('{{ $col }}', index)" class="text-rose-400 hover:text-rose-600 px-1"><i class="fa-solid fa-times"></i></button>
+                                            </div>
+                                        </template>
+                                        <button type="button" @click="addJsonEntry('{{ $col }}')" class="w-full py-1.5 mt-1 border-2 border-dashed border-slate-200 text-slate-400 hover:text-indigo-500 hover:border-indigo-200 rounded-lg text-[10px] font-bold uppercase transition">
+                                            <i class="fa-solid fa-plus mr-1"></i> Add Entry
+                                        </button>
+                                        <input type="hidden" name="{{ $col }}" :value="getJsonString('{{ $col }}')">
+                                    </div>
+                                @else
+                                    <input type="text" name="{{ $col }}" x-model="editingRow['{{ $col }}']" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-indigo-500 focus:bg-white transition text-sm">
+                                @endif
+                            </div>
+                        @endif
+                    @endforeach
+                </div>
+                <div class="p-6 border-t border-slate-100 flex justify-end space-x-3 bg-slate-50">
+                    <button type="button" @click="showEditModal = false" class="px-6 py-2 text-sm font-bold text-slate-500 hover:text-slate-700 transition">Cancel</button>
+                    <button type="submit" class="px-8 py-2 bg-indigo-700 text-white rounded-lg text-sm font-bold hover:bg-indigo-800 transition shadow-lg">Update Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Delete Modal -->
+    <div x-show="showDeleteModal" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm" @keydown.escape.window="showDeleteModal = false" style="margin-top: 0 !important;">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden animate-fadeIn" @click.away="showDeleteModal = false">
+            <div class="p-6 text-center">
+                <div class="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fa-solid fa-triangle-exclamation text-3xl text-red-600"></i>
+                </div>
+                <h3 class="text-xl font-bold text-slate-800 mb-2">Delete Record?</h3>
+                <p class="text-slate-500 text-sm mb-6">Are you sure you want to delete this record? This action is irreversible.</p>
+                <div class="flex flex-col space-y-2">
+                    <form :action="'{{ route('database-controllers.table.destroy', [$table, 'ID']) }}'.replace('ID', deletingId)" method="POST" class="w-full">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="w-full py-3 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 transition shadow-lg">Yes, Delete now</button>
+                    </form>
+                    <button @click="showDeleteModal = false" class="w-full py-3 text-slate-500 font-bold hover:bg-slate-100 rounded-lg transition">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<style>
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fadeIn {
+        animation: fadeIn 0.3s ease-out forwards;
+    }
+    [x-cloak] { display: none !important; }
+</style>
+@endsection

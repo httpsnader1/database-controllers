@@ -1,0 +1,10 @@
+• Make Multi Delete Rows
+• Export Table
+• When Take Backup Export Database As Structure Or Structure With Data
+• Download Backup As ZIP
+• Import Backup As ZIP Or SQL
+• Increase Timeout When Import
+• Add Sort To Header Of Table
+• Make ID Column Sort Desc By Default
+• Add Multi Language For All World Language
+• Add Dark/Light Mode
