@@ -23,7 +23,29 @@
         return val;
     },
     editingRow: {},
+    primaryKey: '{{ $primaryKey }}',
     columnTypes: {{ json_encode($columnTypes ?? []) }},
+    showDeleteModal: false,
+    showBulkDeleteModal: false,
+    selectedIds: [],
+    toggleAll() {
+        if (this.selectedIds.length === this.rowsOnPage.length) {
+            this.selectedIds = [];
+        } else {
+            this.selectedIds = this.rowsOnPage.map(r => String(r[this.primaryKey]));
+        }
+    },
+    toggleOne(id) {
+        id = String(id);
+        if (this.selectedIds.includes(id)) {
+            this.selectedIds = this.selectedIds.filter(i => String(i) !== id);
+        } else {
+            this.selectedIds.push(id);
+        }
+    },
+    get rowsOnPage() {
+        return {{ json_encode($rows->items()) }};
+    },
     jsonFields: {},
     initJsonField(col, val = null) {
         if (this.jsonFields[col]) return;
@@ -93,6 +115,10 @@
         </nav>
         
         <div class="flex items-center space-x-3">
+             <button x-show="selectedIds.length > 0" @click="showBulkDeleteModal = true" class="inline-flex items-center justify-center px-4 py-2 bg-rose-50 border border-rose-200 text-rose-600 rounded-lg text-sm font-bold hover:bg-rose-100 transition shadow-sm active:scale-95 animate-fadeIn" x-transition>
+                <i class="fa-solid fa-trash-can mr-2 text-xs"></i> 
+                <span>Delete Selected (<span x-text="selectedIds.length"></span>)</span>
+             </button>
              <button @click="showFilters = !showFilters" class="inline-flex items-center justify-center px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg text-sm font-bold hover:bg-slate-50 transition shadow-sm active:scale-95" :class="showFilters ? 'ring-2 ring-indigo-500 border-indigo-200' : ''">
                 <i class="fa-solid fa-filter mr-2 text-xs" :class="showFilters ? 'text-indigo-600' : 'text-slate-400'"></i> 
                 <span>Filters</span>
@@ -173,6 +199,9 @@
             <table class="w-full text-left">
                 <thead class="bg-slate-50 border-b border-slate-200 text-xs uppercase text-slate-500 font-bold tracking-wider sticky top-0 bg-white">
                     <tr>
+                        <th class="px-6 py-4 w-10 text-center">
+                            <input type="checkbox" @change="toggleAll()" :checked="selectedIds.length === rowsOnPage.length && rowsOnPage.length > 0" class="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-600 transition cursor-pointer">
+                        </th>
                         @foreach($columns as $col)
                             <th class="px-6 py-4 whitespace-nowrap font-mono border-r border-slate-100 last:border-0 text-center">{{ $col }}</th>
                         @endforeach
@@ -181,7 +210,14 @@
                 </thead>
                 <tbody class="divide-y divide-slate-100">
                     @forelse($rows as $row)
-                        <tr class="hover:bg-slate-50 transition-all duration-200 group cursor-pointer" @click="viewingRow = {{ json_encode($row) }}; showViewModal = true">
+                        <tr class="hover:bg-slate-50 transition-all duration-200 group cursor-pointer" 
+                            :class="selectedIds.includes('{{ $row->$primaryKey }}') ? 'bg-indigo-50/20' : ''"
+                            @click="viewingRow = {{ json_encode($row) }}; showViewModal = true">
+                            <td class="px-6 py-4 text-center border-l-4 transition-all duration-200" 
+                                :class="selectedIds.includes('{{ $row->$primaryKey }}') ? 'border-indigo-500' : 'border-transparent'"
+                                @click.stop="">
+                                <input type="checkbox" :checked="selectedIds.includes('{{ $row->$primaryKey }}')" @change="toggleOne('{{ $row->$primaryKey }}')" class="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-600 transition cursor-pointer">
+                            </td>
                             @foreach($columns as $col)
                                 <td class="px-6 py-4 text-sm text-slate-600 border-r border-slate-50 last:border-0 text-center @if(strlen($row->$col ?? '') > 100) max-w-xs truncate @endif" title="{{ $row->$col ?? '' }}">
                                     @if(is_null($row->$col))
@@ -377,7 +413,7 @@
         </div>
     </div>
 
-</div>
+
 
 <style>
     @keyframes fadeIn {
@@ -389,4 +425,37 @@
     }
     [x-cloak] { display: none !important; }
 </style>
+    <!-- Bulk Delete Confirmation Modal -->
+    <template x-teleport="body">
+        <div x-show="showBulkDeleteModal" x-cloak class="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn" @keydown.escape.window="showBulkDeleteModal = false">
+            <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden" @click.away="showBulkDeleteModal = false">
+                <div class="p-8 text-center">
+                    <div class="w-20 h-20 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-6 border border-rose-100 shadow-sm">
+                        <i class="fa-solid fa-trash-can text-3xl"></i>
+                    </div>
+                    <h3 class="text-2xl font-black text-slate-800 mb-2">Delete <span x-text="selectedIds.length"></span> Records?</h3>
+                    <p class="text-slate-500 text-sm leading-relaxed mb-8">
+                        You are about to delete <span class="font-black text-slate-800" x-text="selectedIds.length"></span> records from the <span class="font-mono bg-slate-100 px-1 rounded">{{ $table }}</span> table. This action is <span class="text-rose-600 font-bold">permanent</span> and cannot be undone.
+                    </p>
+                    
+                    <form action="{{ route('database-controllers.table.bulk-delete', $table) }}" method="POST">
+                        @csrf
+                        <template x-for="id in selectedIds" :key="id">
+                            <input type="hidden" name="ids[]" :value="id">
+                        </template>
+                        
+                        <div class="flex flex-col space-y-3">
+                            <button type="submit" class="w-full py-4 bg-rose-600 text-white rounded-2xl font-bold shadow-lg shadow-rose-600/20 active:scale-95 transition">
+                                Yes, Delete All Selected
+                            </button>
+                            <button type="button" @click="showBulkDeleteModal = false" class="w-full py-3 text-slate-400 font-bold hover:bg-slate-50 rounded-2xl transition">
+                                No, Cancel Action
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </template>
+</div>
 @endsection

@@ -41,7 +41,7 @@ class DatabaseController extends Controller
     {
         $configExcluded = config('database-controllers.excluded_tables', []);
         $dynamicExcluded = [];
-        $filePath = storage_path('app/database-excluded-tables.json');
+        $filePath = storage_path('app/DatabaseControllers/excluded-tables.json');
         
         if (file_exists($filePath)) {
             $dynamicExcluded = json_decode(file_get_contents($filePath), true) ?: [];
@@ -125,7 +125,7 @@ class DatabaseController extends Controller
     {
         $tables = $this->getTables();
         $backups = [];
-        $backupPath = storage_path('app/backups');
+        $backupPath = storage_path('app/DatabaseControllers/backups');
         
         if (is_dir($backupPath)) {
             $files = scandir($backupPath);
@@ -155,7 +155,12 @@ class DatabaseController extends Controller
             return !empty(trim((string)$val));
         }));
 
-        $filePath = storage_path('app/database-excluded-tables.json');
+        $folder = storage_path('app/DatabaseControllers');
+        if (!is_dir($folder)) {
+            mkdir($folder, 0755, true);
+        }
+
+        $filePath = $folder . '/excluded-tables.json';
         file_put_contents($filePath, json_encode($excluded));
 
         return back()->with('success', 'Excluded tables updated successfully.');
@@ -166,7 +171,7 @@ class DatabaseController extends Controller
         $dbName = DB::connection()->getDatabaseName();
         $prefix = config('database-controllers.backup_prefix', 'backup');
         $fileName = "{$prefix}-" . $dbName . "-" . date('Y-m-d_H-i-s') . ".sql";
-        $backupPath = storage_path('app/backups');
+        $backupPath = storage_path('app/DatabaseControllers/backups');
 
         if (!is_dir($backupPath)) {
             mkdir($backupPath, 0755, true);
@@ -228,7 +233,7 @@ class DatabaseController extends Controller
 
     public function downloadBackup($name)
     {
-        $path = storage_path('app/backups/' . $name);
+        $path = storage_path('app/DatabaseControllers/backups/' . $name);
         if (file_exists($path)) {
             return response()->download($path);
         }
@@ -284,7 +289,7 @@ class DatabaseController extends Controller
 
     public function restoreBackup($name)
     {
-        $backupPath = storage_path('app/backups/' . $name);
+        $backupPath = storage_path('app/DatabaseControllers/backups/' . $name);
         
         if (!file_exists($backupPath)) {
             return back()->with('error', "Backup file not found.");
@@ -329,7 +334,7 @@ class DatabaseController extends Controller
 
     public function deleteBackup($name)
     {
-        $path = storage_path('app/backups/' . $name);
+        $path = storage_path('app/DatabaseControllers/backups/' . $name);
         if (file_exists($path)) {
             unlink($path);
             return back()->with('success', 'Backup deleted successfully.');
@@ -362,7 +367,7 @@ class DatabaseController extends Controller
 
     private function getLastBackupDate()
     {
-        $backupPath = storage_path('app/backups');
+        $backupPath = storage_path('app/DatabaseControllers/backups');
         if (is_dir($backupPath)) {
             $files = scandir($backupPath, SCANDIR_SORT_DESCENDING);
             foreach ($files as $file) {
@@ -494,6 +499,24 @@ class DatabaseController extends Controller
         DB::table($table)->where($primaryKey, $id)->delete();
 
         return back()->with('success', 'Row deleted successfully!');
+    }
+
+    public function bulkDestroy(Request $request, $table)
+    {
+        if (!Schema::hasTable($table)) {
+            return back()->with('error', 'Table not found.');
+        }
+
+        $ids = $request->input('ids', []);
+        if (empty($ids)) {
+            return back()->with('error', 'No records selected.');
+        }
+
+        $primaryKey = $this->getPrimaryKey($table) ?? 'id';
+        
+        DB::table($table)->whereIn($primaryKey, $ids)->delete();
+
+        return back()->with('success', count($ids) . ' records deleted successfully!');
     }
 
     private function getPrimaryKey($table)

@@ -24,6 +24,7 @@ Route::prefix(config('database-controllers.route_prefix', 'database-controllers'
     Route::delete('/backup/{name}', [DatabaseController::class, 'deleteBackup'])->name('backup.delete');
     
     Route::get('/table/{table}', [DatabaseController::class, 'show'])->name('table.show');
+    Route::post('/table/{table}/bulk-delete', [DatabaseController::class, 'bulkDestroy'])->name('table.bulk-delete');
     Route::post('/table/{table}', [DatabaseController::class, 'store'])->name('table.store');
     Route::put('/table/{table}/{id}', [DatabaseController::class, 'update'])->name('table.update');
     Route::delete('/table/{table}/{id}', [DatabaseController::class, 'destroy'])->name('table.destroy');

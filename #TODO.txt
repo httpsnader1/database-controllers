@@ -1,5 +1,3 @@
-• Save Backup FOlder In Storage And Exlude Json In Folder Called `DatabaseControllers
-• Make Multi Delete Rows
 • Export Table
 • When Take Backup Export Database As Structure Or Structure With Data
 • Download Backup As ZIP
@@ -9,3 +7,4 @@
 • Make ID Column Sort Desc By Default
 • Add Multi Language For All World Language
 • Add Dark/Light Mode
+• Make Table Row Confiue
