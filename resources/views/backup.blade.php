@@ -8,6 +8,7 @@
     showExportModal: false,
     showDeleteModal: false,
     showRestoreModal: false,
+    showDeleteAllModal: false,
     showExcludeModal: false,
     deletingBackup: '',
     restoringBackup: '',
@@ -59,6 +60,13 @@
                     class="text-xs bg-indigo-100 text-indigo-700 font-bold px-3 py-1 rounded-full border border-indigo-200 shadow-sm">
                 {{ count($backups) }} {{ __('database-controllers::messages.backups_found_count') }}
             </span>
+                @if(count($backups) > 0)
+                    <button @click="showDeleteAllModal = true"
+                            class="ms-4 inline-flex items-center px-4 py-2 bg-rose-600 text-white rounded-lg text-xs font-bold hover:bg-rose-700 transition shadow-lg shadow-rose-600/20 active:scale-95">
+                        <i class="fa-solid fa-trash-can me-2"></i>
+                        {{ __('database-controllers::messages.delete_all_backups') }}
+                    </button>
+                @endif
             </div>
 
             <div class="overflow-x-auto min-h-[300px]">
@@ -368,6 +376,42 @@
                             <button @click="showDeleteModal = false"
                                     class="w-full py-4 text-slate-400 font-bold hover:bg-slate-50 rounded-2xl transition">{{ __('database-controllers::messages.cancel') }}</button>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        <!-- Delete All Backups Confirmation Modal -->
+        <template x-teleport="body">
+            <div x-show="showDeleteAllModal" x-cloak
+                 class="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn"
+                 @keydown.escape.window="showDeleteAllModal = false">
+                <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden"
+                     @click.away="showDeleteAllModal = false">
+                    <div class="p-8 text-center">
+                        <div
+                            class="w-20 h-20 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-6 border border-rose-100 shadow-sm">
+                            <i class="fa-solid fa-trash-can text-3xl"></i>
+                        </div>
+                        <h3 class="text-2xl font-black text-slate-800 mb-2">{{ __('database-controllers::messages.delete_all_backups_title') }}</h3>
+                        <p class="text-slate-500 text-sm leading-relaxed mb-8">
+                            {{ __('database-controllers::messages.delete_all_backups_confirm') }}
+                        </p>
+
+                        <form action="{{ route('database-controllers.backup.delete-all') }}" method="POST">
+                            @csrf
+                            @method('DELETE')
+                            <div class="flex flex-col space-y-3">
+                                <button type="submit"
+                                        class="w-full py-4 bg-rose-600 text-white rounded-2xl font-bold shadow-lg shadow-rose-600/20 active:scale-95 transition">
+                                    {{ __('database-controllers::messages.delete_all_confirm_btn') }}
+                                </button>
+                                <button type="button" @click="showDeleteAllModal = false"
+                                        class="w-full py-3 text-slate-400 font-bold hover:bg-slate-50 rounded-2xl transition">
+                                    {{ __('database-controllers::messages.cancel') }}
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </div>

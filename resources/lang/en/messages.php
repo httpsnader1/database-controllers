@@ -66,6 +66,21 @@ return [
     'delete_record_confirm' => 'Are you sure you want to delete this record? This action is irreversible.',
     'delete_confirm_btn' => 'Yes, Delete now',
 
+    // Bulk Delete Modal
+    'bulk_delete_title' => 'Delete :count Records?',
+    'bulk_delete_confirm' => 'You are about to delete :count records from the :table table. This action is :status and cannot be undone.',
+    'bulk_delete_btn' => 'Yes, Delete All Selected',
+    'bulk_cancel_btn' => 'No, Cancel Action',
+    'permanent' => 'permanent',
+
+    // Truncate Table Modal
+    'truncate_table' => 'Truncate Table',
+    'truncate_confirm_title' => 'Truncate :table Table?',
+    'truncate_confirm_message' => 'You are about to delete ALL records from the :table table. This action is :status and cannot be undone.',
+    'truncate_btn' => 'Yes, Truncate Everything',
+    'table_truncated' => 'Table \':table\' truncated successfully!',
+    'truncate_failed' => 'Truncation failed:',
+
     // Backup & Restore
     'backup_management_title' => 'Backups Management',
     'backup_management_desc' => 'Regularly back up your database to keep your data safe. You can easily export full SQL dumps or restore your data from existing backup files.',
@@ -89,6 +104,10 @@ return [
     'delete_backup_title' => 'Delete Backup?',
     'delete_backup_about' => 'You are about to delete :name. This file will be permanently removed from your storage.',
     'delete_backup_permanently_btn' => 'Yes, Delete Permanently',
+    'delete_all_backups' => 'Delete All Backups',
+    'delete_all_backups_title' => 'Delete All Backups?',
+    'delete_all_backups_confirm' => 'Are you sure you want to delete ALL backup files from the server? This action is permanent and cannot be undone.',
+    'delete_all_confirm_btn' => 'Yes, Delete All Backups',
     'backup_filter_system' => 'Backup Filter System',
     'why_exclude_tables' => 'Why exclude tables?',
     'exclude_tables_desc' => 'Tables listed here will be skipped during the mysqldump process. Use this for large logs, temporary caches, or session data to keep your backups lightweight.',
@@ -134,6 +153,8 @@ return [
     'import_failed' => 'Import failed:',
     'db_restored_from' => 'Database restored successfully from \':name\'',
     'restoration_failed' => 'Restoration failed:',
+    'all_backups_deleted' => 'All backup files have been deleted successfully.',
+    'delete_backups_failed' => 'Failed to delete some backup files:',
     'db_restored_version' => 'Database successfully restored to backup version \':name\'',
     'backup_deleted' => 'Backup deleted successfully.',
     'table_not_found' => 'Table not found.',

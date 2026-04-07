@@ -66,6 +66,21 @@ return [
     'delete_record_confirm' => 'هل أنت متأكد أنك تريد حذف هذا السجل؟ هذا الإجراء لا يمكن التراجع عنه.',
     'delete_confirm_btn' => 'نعم، احذف الآن',
 
+    // Bulk Delete Modal
+    'bulk_delete_title' => 'حذف :count سجل؟',
+    'bulk_delete_confirm' => 'أنت على وشك حذف :count سجل من جدول :table. هذا الإجراء :status ولا يمكن التراجع عنه.',
+    'bulk_delete_btn' => 'نعم، احذف جميع المحدد',
+    'bulk_cancel_btn' => 'لا، إلغاء الإجراء',
+    'permanent' => 'نهائي',
+
+    // Truncate Table Modal
+    'truncate_table' => 'تفريغ الجدول',
+    'truncate_confirm_title' => 'تفريغ جدول :table؟',
+    'truncate_confirm_message' => 'أنت على وشك حذف جميع السجلات من جدول :table. هذا الإجراء :status ولا يمكن التراجع عنه.',
+    'truncate_btn' => 'نعم، أفرغ كل شيء',
+    'table_truncated' => 'تم تفريغ الجدول \':table\' بنجاح!',
+    'truncate_failed' => 'فشل تفريغ الجدول:',
+
     // Backup & Restore
     'backup_management_title' => 'إدارة النسخ الاحتياطية',
     'backup_management_desc' => 'قم بنسخ قاعدة البيانات احتياطياً بانتظام للحفاظ على أمان بياناتك. يمكنك بسهولة تصدير نسخ SQL كاملة أو استعادة بياناتك من ملفات النسخ الاحتياطي الموجودة.',
@@ -89,6 +104,10 @@ return [
     'delete_backup_title' => 'حذف النسخة الاحتياطية؟',
     'delete_backup_about' => 'أنت على وشك حذف :name. سيتم حذف هذا الملف نهائياً من مساحة التخزين الخاصة بك.',
     'delete_backup_permanently_btn' => 'نعم، احذف نهائياً',
+    'delete_all_backups' => 'حذف جميع النسخ الاحتياطية',
+    'delete_all_backups_title' => 'حذف جميع النسخ الاحتياطية؟',
+    'delete_all_backups_confirm' => 'هل أنت متأكد أنك تريد حذف جميع ملفات النسخ الاحتياطي من الخادم؟ هذا الإجراء نهائي ولا يمكن التراجع عنه.',
+    'delete_all_confirm_btn' => 'نعم، احذف جميع النسخ الاحتياطية',
     'backup_filter_system' => 'نظام تصفية النسخ الاحتياطي',
     'why_exclude_tables' => 'لماذا نستثني الجداول؟',
     'exclude_tables_desc' => 'سيتم تخطي الجداول المدرجة هنا أثناء الاستخراج. استخدم هذا لسجلات النشاط أو الذاكرة المؤقتة أو الجلسات لكي تحافظ على صغر حجم النسخ الاحتياطي.',
@@ -134,6 +153,8 @@ return [
     'import_failed' => 'فشل الاستيراد:',
     'db_restored_from' => 'تمت استعادة قاعدة البيانات بنجاح من \':name\'',
     'restoration_failed' => 'فشلت الاستعادة:',
+    'all_backups_deleted' => 'تم حذف جميع ملفات النسخ الاحتياطي بنجاح.',
+    'delete_backups_failed' => 'فشل حذف بعض ملفات النسخ الاحتياطي:',
     'db_restored_version' => 'تمت استعادة قاعدة البيانات بنجاح إلى الإصدار الاحتياطي \':name\'',
     'backup_deleted' => 'تم حذف النسخة الاحتياطية بنجاح.',
     'table_not_found' => 'الجدول غير موجود.',

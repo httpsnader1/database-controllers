@@ -66,6 +66,21 @@ return [
     'delete_record_confirm' => 'Êtes-vous sûr de vouloir supprimer ceci ? Action irréversible.',
     'delete_confirm_btn' => 'Oui, supprimer',
 
+    // Bulk Delete Modal
+    'bulk_delete_title' => 'Supprimer :count enregistrements ?',
+    'bulk_delete_confirm' => 'Vous allez supprimer :count enregistrements de la table :table. Cette action est :status et irréversible.',
+    'bulk_delete_btn' => 'Oui, supprimer la sélection',
+    'bulk_cancel_btn' => 'Non, annuler l\'action',
+    'permanent' => 'permanente',
+
+    // Truncate Table Modal
+    'truncate_table' => 'Vider la table',
+    'truncate_confirm_title' => 'Vider la table :table ?',
+    'truncate_confirm_message' => 'Vous allez supprimer TOUS les enregistrements de la table :table. Cette action est :status et irréversible.',
+    'truncate_btn' => 'Oui, tout vider',
+    'table_truncated' => 'Table \':table\' vidée avec succès !',
+    'truncate_failed' => 'Échec du vidage de la table :',
+
     // Backup & Restore
     'backup_management_title' => 'Gestion Sauvegardes',
     'backup_management_desc' => 'Sauvegardez régulièrement vos données. Vous pouvez exporter des dumps SQL ou restaurer depuis un fichier existant.',
@@ -89,6 +104,10 @@ return [
     'delete_backup_title' => 'Supprimer sauvegarde ?',
     'delete_backup_about' => 'Vous allez supprimer :name définitivement.',
     'delete_backup_permanently_btn' => 'Oui, supprimer',
+    'delete_all_backups' => 'Supprimer tous les backups',
+    'delete_all_backups_title' => 'Supprimer tous les backups ?',
+    'delete_all_backups_confirm' => 'Êtes-vous sûr de vouloir supprimer TOUS les fichiers de sauvegarde du serveur ? Cette action est permanente et irréversible.',
+    'delete_all_confirm_btn' => 'Oui, tout supprimer',
     'backup_filter_system' => 'Système de filtre de sauvegarde',
     'why_exclude_tables' => 'Pourquoi exclure des tables ?',
     'exclude_tables_desc' => 'Les tables listées ici seront ignorées pendant le processus mysqldump. Utilisez ceci pour les gros journaux, les caches temporaires ou les données de session afin de garder vos sauvegardes légères.',
@@ -134,6 +153,8 @@ return [
     'import_failed' => 'L\'importation a échoué :',
     'db_restored_from' => 'Base de données restaurée avec succès depuis \':name\'',
     'restoration_failed' => 'La restauration a échoué :',
+    'all_backups_deleted' => 'Toutes les sauvegardes ont été supprimées avec succès.',
+    'delete_backups_failed' => 'Échec de la suppression de certaines sauvegardes :',
     'db_restored_version' => 'Base de données restaurée avec succès à la version de sauvegarde \':name\'',
     'backup_deleted' => 'Sauvegarde supprimée avec succès.',
     'table_not_found' => 'Table introuvable.',

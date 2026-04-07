@@ -66,6 +66,21 @@ return [
     'delete_record_confirm' => '¿Estás seguro de querer eliminar esto? Acción irreversible.',
     'delete_confirm_btn' => 'Sí, eliminar',
 
+    // Bulk Delete Modal
+    'bulk_delete_title' => '¿Eliminar :count registros?',
+    'bulk_delete_confirm' => 'Estás a punto de eliminar :count registros de la tabla :table. Esta acción es :status y no se puede deshacer.',
+    'bulk_delete_btn' => 'Sí, eliminar todos los seleccionados',
+    'bulk_cancel_btn' => 'No, cancelar acción',
+    'permanent' => 'permanente',
+
+    // Truncate Table Modal
+    'truncate_table' => 'Vaciar Tabla',
+    'truncate_confirm_title' => '¿Vaciar tabla :table?',
+    'truncate_confirm_message' => 'Estás a punto de eliminar TODOS los registros de la tabla :table. Esta acción es :status y no se puede deshacer.',
+    'truncate_btn' => 'Sí, vaciar todo',
+    'table_truncated' => '¡Tabla \':table\' vaciada con éxito!',
+    'truncate_failed' => 'Error al vaciar la tabla:',
+
     // Backup & Restore
     'backup_management_title' => 'Gestión de Backups',
     'backup_management_desc' => 'Haz copias de tu base de datos regularmente. Puedes exportar dumps SQL completos o restaurar.',
@@ -89,6 +104,10 @@ return [
     'delete_backup_title' => '¿Eliminar Backup?',
     'delete_backup_about' => 'Estás a punto de eliminar :name permanentemente.',
     'delete_backup_permanently_btn' => 'Sí, Eliminar Permanentemente',
+    'delete_all_backups' => 'Eliminar todos los Backups',
+    'delete_all_backups_title' => '¿Eliminar todos los Backups?',
+    'delete_all_backups_confirm' => '¿Estás seguro de que quieres eliminar TODOS los archivos de copia de seguridad del servidor? Esta acción es permanente y no se puede deshacer.',
+    'delete_all_confirm_btn' => 'Sí, eliminar todos los backups',
     'backup_filter_system' => 'Sistema de Filtro de Backups',
     'why_exclude_tables' => '¿Por qué excluir tablas?',
     'exclude_tables_desc' => 'Las tablas enumeradas aquí se omitirán durante el proceso mysqldump. Utiliza esto para registros grandes, cachés temporales o datos de sesión para mantener tus backups ligeros.',
@@ -134,6 +153,8 @@ return [
     'import_failed' => 'Fallo en la importación:',
     'db_restored_from' => 'Base de datos restaurada correctamente desde \':name\'',
     'restoration_failed' => 'La restauración falló:',
+    'all_backups_deleted' => '¡Todos los archivos de backup han sido eliminados con éxito!',
+    'delete_backups_failed' => 'Error al eliminar algunos archivos de backup:',
     'db_restored_version' => 'Base de datos restaurada con éxito a la versión de copia de seguridad \':name\'',
     'backup_deleted' => 'Copia de seguridad eliminada con éxito.',
     'table_not_found' => 'Tabla no encontrada.',

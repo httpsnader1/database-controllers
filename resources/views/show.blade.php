@@ -27,6 +27,7 @@
     columnTypes: {{ json_encode($columnTypes ?? []) }},
     showDeleteModal: false,
     showBulkDeleteModal: false,
+    showTruncateModal: false,
     selectedIds: [],
     toggleAll() {
         if (this.selectedIds.length === this.rowsOnPage.length) {
@@ -140,6 +141,9 @@
             </button>
              <button @click="showAddModal = true" class="flex-1 md:flex-none inline-flex items-center justify-center px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold hover:bg-indigo-700 transition shadow-lg active:scale-95 shadow-indigo-200">
                 <i class="fa-solid fa-plus me-2 text-xs"></i> {{ __('database-controllers::messages.add_row') }}
+            </button>
+            <button @click="showTruncateModal = true" class="flex-1 md:flex-none inline-flex items-center justify-center px-4 py-2 bg-rose-600 text-white rounded-lg text-sm font-bold hover:bg-rose-700 transition shadow-lg active:scale-95 shadow-rose-200">
+                <i class="fa-solid fa-broom me-2 text-xs"></i> {{ __('database-controllers::messages.truncate_table') }}
             </button>
         </div>
     </div>
@@ -439,18 +443,6 @@
         </div>
     </div>
 
-
-
-<style>
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(10px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    .animate-fadeIn {
-        animation: fadeIn 0.3s ease-out forwards;
-    }
-    [x-cloak] { display: none !important; }
-</style>
     <!-- Bulk Delete Confirmation Modal -->
     <template x-teleport="body">
         <div x-show="showBulkDeleteModal" x-cloak class="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn" @keydown.escape.window="showBulkDeleteModal = false">
@@ -459,9 +451,15 @@
                     <div class="w-20 h-20 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-6 border border-rose-100 shadow-sm">
                         <i class="fa-solid fa-trash-can text-3xl"></i>
                     </div>
-                    <h3 class="text-2xl font-black text-slate-800 mb-2">Delete <span x-text="selectedIds.length"></span> Records?</h3>
+                    <h3 class="text-2xl font-black text-slate-800 mb-2">
+                        {!! __('database-controllers::messages.bulk_delete_title', ['count' => '<span x-text="selectedIds.length"></span>']) !!}
+                    </h3>
                     <p class="text-slate-500 text-sm leading-relaxed mb-8">
-                        You are about to delete <span class="font-black text-slate-800" x-text="selectedIds.length"></span> records from the <span class="font-mono bg-slate-100 px-1 rounded">{{ $table }}</span> table. This action is <span class="text-rose-600 font-bold">permanent</span> and cannot be undone.
+                        {!! __('database-controllers::messages.bulk_delete_confirm', [
+                            'count' => '<span class="font-black text-slate-800" x-text="selectedIds.length"></span>',
+                            'table' => '<span class="font-mono bg-slate-100 px-1 rounded">' . $table . '</span>',
+                            'status' => '<span class="text-rose-600 font-bold">' . __('database-controllers::messages.permanent') . '</span>'
+                        ]) !!}
                     </p>
 
                     <form action="{{ route('database-controllers.table.bulk-delete', $table) }}" method="POST">
@@ -472,10 +470,10 @@
 
                         <div class="flex flex-col space-y-3">
                             <button type="submit" class="w-full py-4 bg-rose-600 text-white rounded-2xl font-bold shadow-lg shadow-rose-600/20 active:scale-95 transition">
-                                Yes, Delete All Selected
+                                {{ __('database-controllers::messages.bulk_delete_btn') }}
                             </button>
                             <button type="button" @click="showBulkDeleteModal = false" class="w-full py-3 text-slate-400 font-bold hover:bg-slate-50 rounded-2xl transition">
-                                No, Cancel Action
+                                {{ __('database-controllers::messages.bulk_cancel_btn') }}
                             </button>
                         </div>
                     </form>
@@ -483,5 +481,50 @@
             </div>
         </div>
     </template>
+
+    <!-- Truncate Table Confirmation Modal -->
+    <template x-teleport="body">
+        <div x-show="showTruncateModal" x-cloak class="fixed inset-0 z-[999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn" @keydown.escape.window="showTruncateModal = false">
+            <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden" @click.away="showTruncateModal = false">
+                <div class="p-8 text-center">
+                    <div class="w-20 h-20 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-6 border border-rose-100 shadow-sm">
+                        <i class="fa-solid fa-broom text-3xl"></i>
+                    </div>
+                    <h3 class="text-2xl font-black text-slate-800 mb-2">
+                        {!! __('database-controllers::messages.truncate_confirm_title', ['table' => '<span class="font-mono bg-slate-100 px-1 rounded">' . $table . '</span>']) !!}
+                    </h3>
+                    <p class="text-slate-500 text-sm leading-relaxed mb-8">
+                        {!! __('database-controllers::messages.truncate_confirm_message', [
+                            'table' => '<span class="font-mono bg-slate-100 px-1 rounded">' . $table . '</span>',
+                            'status' => '<span class="text-rose-600 font-bold">' . __('database-controllers::messages.permanent') . '</span>'
+                        ]) !!}
+                    </p>
+
+                    <form action="{{ route('database-controllers.table.truncate', $table) }}" method="POST">
+                        @csrf
+                        <div class="flex flex-col space-y-3">
+                            <button type="submit" class="w-full py-4 bg-rose-600 text-white rounded-2xl font-bold shadow-lg shadow-rose-600/20 active:scale-95 transition">
+                                {{ __('database-controllers::messages.truncate_btn') }}
+                            </button>
+                            <button type="button" @click="showTruncateModal = false" class="w-full py-3 text-slate-400 font-bold hover:bg-slate-50 rounded-2xl transition">
+                                {{ __('database-controllers::messages.bulk_cancel_btn') }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fadeIn {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+        [x-cloak] { display: none !important; }
+    </style>
 </div>
 @endsection

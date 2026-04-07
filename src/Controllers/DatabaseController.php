@@ -488,6 +488,27 @@ class DatabaseController extends Controller
         return back()->with('error', __('database-controllers::messages.backup_not_found'));
     }
 
+    public function deleteAllBackups()
+    {
+        $backupPath = storage_path('app/DatabaseControllers' . DIRECTORY_SEPARATOR . 'backups');
+        if (!is_dir($backupPath)) {
+            return back()->with('error', __('database-controllers::messages.no_backups_found'));
+        }
+
+        try {
+            $files = array_diff(scandir($backupPath), ['.', '..']);
+            foreach ($files as $file) {
+                $filePath = $backupPath . DIRECTORY_SEPARATOR . $file;
+                if (is_file($filePath)) {
+                    unlink($filePath);
+                }
+            }
+            return back()->with('success', __('database-controllers::messages.all_backups_deleted'));
+        } catch (\Exception $e) {
+            return back()->with('error', __('database-controllers::messages.delete_backups_failed') . ' ' . $e->getMessage());
+        }
+    }
+
     private function getDatabaseSize()
     {
         try {
@@ -696,6 +717,23 @@ class DatabaseController extends Controller
         DB::table($table)->whereIn($primaryKey, $ids)->delete();
 
         return back()->with('success', __('database-controllers::messages.records_deleted', ['count' => count($ids)]));
+    }
+
+    public function truncate($table)
+    {
+        if (!Schema::hasTable($table)) {
+            return back()->with('error', __('database-controllers::messages.table_not_found'));
+        }
+
+        try {
+            Schema::disableForeignKeyConstraints();
+            DB::table($table)->truncate();
+            Schema::enableForeignKeyConstraints();
+            return back()->with('success', __('database-controllers::messages.table_truncated', ['table' => $table]));
+        } catch (\Exception $e) {
+            Schema::enableForeignKeyConstraints();
+            return back()->with('error', __('database-controllers::messages.truncate_failed') . ' ' . $e->getMessage());
+        }
     }
 
     private function getPrimaryKey($table)
