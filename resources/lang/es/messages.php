@@ -105,6 +105,13 @@ return [
     'restoring_data' => 'Restaurando Datos...',
     'restoring_data_desc' => 'Por favor, no cierres esta ventana. Este proceso puede tardar un minuto dependiendo del tamaño de tu SQL.',
 
+    // Login Page
+    'login_subtitle' => 'Introduce la Contraseña en la Configuración',
+    'enter_password' => 'Introduce la Contraseña...',
+    'login_btn' => 'Iniciar Sesión',
+    'protected_by' => 'Protegido por',
+    'made_by' => 'Hecho por',
+
     // Controller Response Messages
     'invalid_password' => 'Contraseña inválida. Inténtalo de nuevo.',
     'excluded_tables_updated' => 'Tablas excluidas actualizadas correctamente.',

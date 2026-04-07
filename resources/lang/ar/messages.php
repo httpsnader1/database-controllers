@@ -105,6 +105,13 @@ return [
     'restoring_data' => 'جاري الاستعادة...',
     'restoring_data_desc' => 'نرجو عدم إغلاق النافذة. قد تستغرق العملية بضع دقائق حسب حجم الملف.',
 
+    // Login Page
+    'login_subtitle' => 'يرجى إدخال كلمة المرور من الإعدادات',
+    'enter_password' => 'أدخل كلمة المرور...',
+    'login_btn' => 'تسجيل الدخول',
+    'protected_by' => 'مُحمي بواسطة',
+    'made_by' => 'صنع بواسطة',
+
     // Controller Response Messages
     'invalid_password' => 'كلمة المرور غير صالحة. يرجى المحاولة مرة أخرى.',
     'excluded_tables_updated' => 'تم تحديث الجداول المستثناة بنجاح.',

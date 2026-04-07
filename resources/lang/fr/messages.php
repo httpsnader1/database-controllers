@@ -105,6 +105,13 @@ return [
     'restoring_data' => 'Restauration...',
     'restoring_data_desc' => 'Ne fermez pas cette fenêtre. Cela peut prendre un moment selon la taille du fichier SQL.',
 
+    // Login Page
+    'login_subtitle' => 'Veuillez saisir le mot de passe dans la config',
+    'enter_password' => 'Saisir le mot de passe...',
+    'login_btn' => 'Connexion',
+    'protected_by' => 'Protégé par',
+    'made_by' => 'Fait par',
+
     // Controller Response Messages
     'invalid_password' => 'Mot de passe invalide. Veuillez réessayer.',
     'excluded_tables_updated' => 'Tables exclues mises à jour avec succès.',

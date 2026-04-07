@@ -279,7 +279,7 @@
             <main class="p-6 md:p-8 flex-grow">
                 @if(session('success'))
                     <div class="mb-6 p-4 bg-emerald-50 border-emerald-500/50 border rounded-lg flex items-center text-emerald-800 shadow-sm animate-fadeIn">
-                        <div class="w-8 h-8 bg-emerald-500 text-white rounded-full flex items-center justify-center mr-3 shadow-sm">
+                        <div class="w-8 h-8 bg-emerald-500 text-white rounded-full flex items-center justify-center ltr:mr-3 rtl:ml-3 shadow-sm">
                             <i class="fa-solid fa-check"></i>
                         </div>
                         <span class="font-medium font-sm">{{ session('success') }}</span>
@@ -288,7 +288,7 @@
 
                 @if(session('error'))
                     <div class="mb-6 p-4 bg-rose-50 border-rose-500/50 border rounded-lg flex items-center text-rose-800 shadow-sm animate-fadeIn">
-                        <div class="w-8 h-8 bg-rose-500 text-white rounded-full flex items-center justify-center mr-3 shadow-sm">
+                        <div class="w-8 h-8 bg-rose-500 text-white rounded-full flex items-center justify-center ltr:mr-3 rtl:ml-3 shadow-sm">
                             <i class="fa-solid fa-times"></i>
                         </div>
                         <span class="font-medium font-sm">{{ session('error') }}</span>
@@ -301,7 +301,7 @@
             <!-- Page Footer -->
             <footer class="py-4 px-8 border-t border-slate-200 bg-white text-center md:text-left flex flex-col md:flex-row justify-between items-center gap-4">
                 <p class="text-xs text-slate-500 font-medium">
-                    &copy; {{ date('Y') }} <span class="font-bold text-indigo-600">Httpsnader1</span> - Database Controllers
+                    {{ __('database-controllers::messages.made_by') }} ❤️ <a href="https://github.com/httpsnader1" target="_blank" class="text-slate-400">Mohamed Nader</a>
                 </p>
                 <div class="flex items-center space-x-4 text-xs font-bold text-slate-400">
                     <a href="#" class="hover:text-indigo-600 transition tracking-wider uppercase">Documentation</a>

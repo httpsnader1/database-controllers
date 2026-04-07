@@ -105,6 +105,13 @@ return [
     'restoring_data' => 'Restoring Data...',
     'restoring_data_desc' => 'Please do not close this window. This process may take a minute depending on your SQL size.',
 
+    // Login Page
+    'login_subtitle' => 'Please Enter Password In Config',
+    'enter_password' => 'Enter Password ...',
+    'login_btn' => 'Login',
+    'protected_by' => 'Protected by',
+    'made_by' => 'Made by',
+
     // Controller Response Messages
     'invalid_password' => 'Invalid password. Please try again.',
     'excluded_tables_updated' => 'Excluded tables updated successfully.',
