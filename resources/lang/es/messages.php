@@ -163,4 +163,5 @@ return [
     'row_deleted' => '¡Fila eliminada con éxito!',
     'records_deleted' => '¡:count registros eliminados con éxito!',
     'no_records_selected' => 'No se seleccionaron registros.',
+    'processing' => 'Procesando...',
 ];

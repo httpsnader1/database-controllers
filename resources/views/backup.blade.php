@@ -147,7 +147,7 @@
                         </div>
                         <h3 class="text-2xl font-black text-slate-800 mb-6 text-center">{{ __('database-controllers::messages.export_options') }}</h3>
 
-                        <form action="{{ route('database-controllers.backup.export') }}" method="POST">
+                        <form action="{{ route('database-controllers.backup.export') }}" method="POST" @submit="isLoading = true">
                             @csrf
                             <div class="space-y-6">
                                 <!-- Export Type -->
@@ -237,7 +237,7 @@
                            x-html="'{{ __('database-controllers::messages.import_zip_sql') }}'.replace('.sql', '<span class=\'font-bold text-slate-800\'>.sql</span>').replace('.zip', '<span class=\'font-bold text-slate-800\'>.zip</span>')"></p>
 
                         <form action="{{ route('database-controllers.backup.import') }}" method="POST"
-                              enctype="multipart/form-data" @submit="isImporting = true">
+                              enctype="multipart/form-data" @submit="isImporting = true; isLoading = true">
                             @csrf
                             <div class="mb-6">
                                 <label
@@ -326,7 +326,7 @@
                         <div class="flex flex-col space-y-2">
                             <form
                                 :action="'{{ route('database-controllers.backup.restore', 'FILENAME') }}'.replace('FILENAME', restoringBackup)"
-                                method="POST" class="w-full" @submit="isRestoring = true">
+                                method="POST" class="w-full" @submit="isRestoring = true; isLoading = true">
                                 @csrf
                                 <button type="submit"
                                         class="w-full py-4 bg-emerald-600 text-white rounded-2xl font-bold hover:bg-emerald-700 transition shadow-lg shadow-emerald-600/20 active:scale-95">{{ __('database-controllers::messages.restore_confirm_btn') }}</button>
@@ -367,7 +367,7 @@
                         <div class="flex flex-col space-y-2">
                             <form
                                 :action="'{{ route('database-controllers.backup.delete', 'FILENAME') }}'.replace('FILENAME', deletingBackup)"
-                                method="POST" class="w-full">
+                                method="POST" class="w-full" @submit="isLoading = true">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit"
@@ -398,7 +398,7 @@
                             {{ __('database-controllers::messages.delete_all_backups_confirm') }}
                         </p>
 
-                        <form action="{{ route('database-controllers.backup.delete-all') }}" method="POST">
+                        <form action="{{ route('database-controllers.backup.delete-all') }}" method="POST" @submit="isLoading = true">
                             @csrf
                             @method('DELETE')
                             <div class="flex flex-col space-y-3">
@@ -449,7 +449,7 @@
                             </div>
                         </div>
 
-                        <form action="{{ route('database-controllers.backup.exclude-tables') }}" method="POST">
+                        <form action="{{ route('database-controllers.backup.exclude-tables') }}" method="POST" @submit="isLoading = true">
                             @csrf
                             <div class="max-h-[300px] overflow-y-auto px-1 scrollbar-thin mb-8">
                                 <div class="space-y-3">

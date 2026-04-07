@@ -163,4 +163,5 @@ return [
     'row_deleted' => 'Row deleted successfully!',
     'records_deleted' => ':count records deleted successfully!',
     'no_records_selected' => 'No records selected.',
+    'processing' => 'Processing...',
 ];

@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -42,7 +42,7 @@
         .dark .bg-slate-50 { background-color: #020617 !important; }
         .dark .text-slate-900, .dark .text-slate-800, .dark .text-slate-700 { color: #f8fafc !important; }
         .dark .text-slate-600, .dark .text-slate-500 { color: #cbd5e1 !important; }
-        
+
         /* Comprehensive Border Fix */
         .dark .border,
         .dark .border-t,
@@ -52,10 +52,10 @@
         .dark .border-slate-300,
         .dark .border-slate-200,
         .dark .border-slate-100,
-        .dark .border-slate-50 { 
-            border-color: rgba(255, 255, 255, 0.1) !important; 
+        .dark .border-slate-50 {
+            border-color: rgba(255, 255, 255, 0.1) !important;
         }
-        
+
         /* Enhanced Contrast for Cards */
         .dark .rounded-xl.border-slate-200,
         .dark .rounded-2xl.border-slate-200,
@@ -64,26 +64,26 @@
         }
 
         .dark .bg-slate-100 { background-color: #1e293b !important; }
-        .dark .hover\:bg-slate-50:hover, 
+        .dark .hover\:bg-slate-50:hover,
         .dark .hover\:bg-slate-100:hover,
-        .dark .hover\:bg-slate-100\/50:hover { 
-            background-color: rgba(255, 255, 255, 0.05) !important; 
+        .dark .hover\:bg-slate-100\/50:hover {
+            background-color: rgba(255, 255, 255, 0.05) !important;
         }
-        
+
         .dark header { background-color: #0f172a !important; border-color: rgba(255, 255, 255, 0.08) !important; border-bottom-width: 1px; }
         .dark aside { background-color: #020617 !important; border-color: rgba(255, 255, 255, 0.08) !important; }
         .dark .sticky { background-color: #0f172a !important; z-index: 20; color: #f8fafc !important; }
         .dark thead.sticky, .dark thead .sticky { background-color: #1e293b !important; }
-        
+
         /* Enhanced Buttons & Inputs */
         .dark .bg-indigo-600 { background-color: #4f46e5 !important; }
         .dark .hover\:bg-indigo-700:hover { background-color: #4338ca !important; box-shadow: 0 0 15px rgba(99, 102, 241, 0.4) !important; }
         .dark button.bg-white { background-color: #1e293b !important; border-color: rgba(255, 255, 255, 0.15) !important; color: #f1f5f9 !important; }
         .dark button.bg-white:hover { background-color: #334155 !important; border-color: #6366f1 !important; box-shadow: 0 0 10px rgba(255, 255, 255, 0.05) !important; }
-        
+
         .dark input, .dark select, .dark textarea { background-color: #0f172a !important; border-color: rgba(255, 255, 255, 0.1) !important; color: #f1f5f9 !important; }
         .dark input:focus, .dark select:focus { border-color: #6366f1 !important; ring: 2px #6366f1 !important; }
-        
+
         /* Table & Data Enhancements */
         .dark thead { background-color: #1e293b !important; border-bottom: 2px solid rgba(255, 255, 255, 0.05) !important; }
         .dark tr { border-bottom: 1px solid rgba(255, 255, 255, 0.03) !important; }
@@ -91,7 +91,7 @@
         .dark .bg-slate-50\/50 { background-color: rgba(2, 6, 17, 0.4) !important; }
         .dark td.sticky { background-color: #0f172a !important; box-shadow: -4px 0 10px rgba(0,0,0,0.4) !important; }
         .dark th.sticky { background-color: #1e293b !important; box-shadow: -4px 0 10px rgba(0,0,0,0.4) !important; }
-        
+
         /* Specialized Components */
         .dark .bg-indigo-50 { background-color: rgba(99, 102, 241, 0.15) !important; color: #a5b4fc !important; border: 1px solid rgba(99, 102, 241, 0.2) !important; }
         .dark .bg-rose-50 { background-color: rgba(244, 63, 94, 0.15) !important; color: #fda4af !important; border: 1px solid rgba(244, 63, 94, 0.2) !important; }
@@ -99,28 +99,29 @@
 
         /* Shadows & Transitions */
         .dark .shadow-sm, .dark .shadow-md, .dark .shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.4) !important; }
-        
+
         * {
             transition: background-color 300ms ease, border-color 300ms ease, color 300ms ease, box-shadow 300ms ease;
         }
     </style>
     <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
 </head>
-<body class="bg-slate-50 font-sans text-slate-900 transition-colors duration-300" 
-    x-data="{ 
-        sidebarOpen: true, 
-        tableSearch: '', 
+<body class="bg-slate-50 font-sans text-slate-900 transition-colors duration-300"
+    x-data="{
+        sidebarOpen: true,
+        tableSearch: '',
         allTables: {{ json_encode($tables ?? $allTables ?? []) }},
         darkMode: localStorage.getItem('db_ctrl_dark') === 'true',
+        isLoading: false,
         toggleMode() {
             this.darkMode = !this.darkMode;
             localStorage.setItem('db_ctrl_dark', this.darkMode);
         }
     }" :class="darkMode ? 'dark bg-slate-950 text-slate-100' : ''">
     <div class="h-screen flex overflow-hidden">
-        
+
         <!-- Sidebar -->
-        <aside 
+        <aside
             class="bg-slate-900 text-slate-300 w-72 flex-shrink-0 transition-all duration-300 ease-in-out border-r border-slate-800 flex flex-col z-40 fixed h-full md:relative md:h-screen md:sticky md:top-0"
             :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0 md:w-20'"
         >
@@ -134,15 +135,15 @@
 
             <!-- Sidebar Navigation -->
             <div class="flex-grow flex flex-col pt-6 px-4 overflow-hidden min-h-0">
-                
+
                 <!-- Main Menu -->
                 <div class="space-y-3 flex-shrink-0 mb-7">
                     <h4 class="text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-2 px-2" x-show="sidebarOpen">{{ __('database-controllers::messages.general') }}</h4>
-                    <a href="{{ route('database-controllers.index') }}" class="flex items-center px-3 py-2.5 rounded-lg hover:bg-slate-800 hover:text-white transition group @if(Route::is('database-controllers.index')) bg-indigo-600 text-white shadow-lg shadow-indigo-600/20 @endif">
+                    <a href="{{ route('database-controllers.index') }}" @click="isLoading = true" class="flex items-center px-3 py-2.5 rounded-lg hover:bg-slate-800 hover:text-white transition group @if(Route::is('database-controllers.index')) bg-indigo-600 text-white shadow-lg shadow-indigo-600/20 @endif">
                         <i class="fa-solid fa-gauge w-6 text-center text-lg @if(!Route::is('database-controllers.index')) text-slate-500 group-hover:text-indigo-400 @endif"></i>
                         <span class="ms-3 font-medium text-sm transition-all duration-300" x-show="sidebarOpen">{{ __('database-controllers::messages.dashboard') }}</span>
                     </a>
-                    <a href="{{ route('database-controllers.backup') }}" class="flex items-center px-3 py-2.5 rounded-lg hover:bg-slate-800 hover:text-white transition group @if(Route::is('database-controllers.backup')) bg-indigo-600 text-white shadow-lg shadow-indigo-600/20 @endif">
+                    <a href="{{ route('database-controllers.backup') }}" @click="isLoading = true" class="flex items-center px-3 py-2.5 rounded-lg hover:bg-slate-800 hover:text-white transition group @if(Route::is('database-controllers.backup')) bg-indigo-600 text-white shadow-lg shadow-indigo-600/20 @endif">
                         <i class="fa-solid fa-cloud-arrow-down w-6 text-center text-lg @if(!Route::is('database-controllers.backup')) text-slate-500 group-hover:text-amber-400 @endif"></i>
                         <span class="ms-3 font-medium text-sm transition-all duration-300" x-show="sidebarOpen">{{ __('database-controllers::messages.backups') }}</span>
                     </a>
@@ -154,14 +155,14 @@
                         <i class="fa-solid fa-list-ul me-2 text-indigo-500"></i>
                         {{ __('database-controllers::messages.tables') }}
                     </h3>
-                    
+
                     <!-- Search Tables -->
                     <div class="mb-4 px-1 relative group">
                         <i class="fa-solid fa-magnifying-glass absolute start-4 top-1/2 -translate-y-1/2 text-slate-500 text-[10px] pointer-events-none group-focus-within:text-indigo-400 transition-colors"></i>
-                        <input 
-                            type="text" 
+                        <input
+                            type="text"
                             x-model="tableSearch"
-                            placeholder="{{ __('database-controllers::messages.filter_tables') }}" 
+                            placeholder="{{ __('database-controllers::messages.filter_tables') }}"
                             class="w-full bg-slate-800/50 border border-slate-700/50 rounded-lg py-2 ps-9 pe-4 text-xs text-slate-300 focus:outline-none focus:ring-1 focus:ring-indigo-500/50 focus:border-indigo-500/50 focus:bg-slate-800 transition-all font-medium placeholder:text-slate-600"
                         >
                     </div>
@@ -170,8 +171,9 @@
                     <div class="flex-grow h-[calc(100vh-288px)] overflow-y-auto px-1 ltr:pr-2 rtl:pl-2 scrollbar-thin">
                         <div class="space-y-1">
                             <template x-for="table in allTables.filter(t => t.name.toLowerCase().includes(tableSearch.toLowerCase()))" :key="table.name">
-                                <a 
-                                    :href="'{{ route('database-controllers.table.show', 'TABLE') }}'.replace('TABLE', table.name)" 
+                                <a
+                                    :href="'{{ route('database-controllers.table.show', 'TABLE') }}'.replace('TABLE', table.name)"
+                                    @click="isLoading = true"
                                     class="flex items-center px-3 py-2 rounded-md hover:bg-slate-800 hover:text-white transition text-xs group"
                                     :class="'{{ $table ?? '' }}' == table.name ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/20' : 'text-slate-400'"
                                 >
@@ -220,7 +222,7 @@
                             <i class="fa-solid fa-chevron-down ms-2 text-[9px] text-slate-400 transition-transform duration-300" :class="langOpen ? 'rotate-180' : ''"></i>
                         </button>
 
-                        <div x-show="langOpen" x-cloak 
+                        <div x-show="langOpen" x-cloak
                              x-transition:enter="transition ease-out duration-200"
                              x-transition:enter-start="opacity-0 translate-y-1 scale-95"
                              x-transition:enter-end="opacity-100 translate-y-0 scale-100"
@@ -238,7 +240,8 @@
                                 ];
                             @endphp
                             @foreach($langs as $code => $info)
-                                <a href="{{ route('database-controllers.switch-locale', $code) }}" 
+                                <a href="{{ route('database-controllers.switch-locale', $code) }}"
+                                   @click="isLoading = true"
                                    class="{{ app()->getLocale() == $code ? 'bg-indigo-50/50 dark:bg-slate-800/80' : '' }} flex items-center justify-center px-5 py-2.5 text-xs font-bold transition-all duration-200 hover:bg-indigo-50/50 dark:hover:bg-slate-800/80 group"
                                 >
                                     <div class="flex items-center">
@@ -264,7 +267,7 @@
                         </div>
                     </button>
                     @if(!empty(config('database-controllers.password')))
-                        <form action="{{ route('database-controllers.logout') }}" method="POST">
+                        <form action="{{ route('database-controllers.logout') }}" method="POST" @submit="isLoading = true">
                             @csrf
                             <button type="submit" class="flex items-center gap-3 px-3 py-1.5 rounded-lg border border-transparent hover:border-rose-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 transition duration-300 group">
                                 <span class="text-[11px] font-black uppercase tracking-widest">{{ __('database-controllers::messages.logout') }}</span>
@@ -297,6 +300,24 @@
 
                 @yield('content')
             </main>
+
+            <!-- Loading Overlay -->
+            <div x-show="isLoading" x-cloak
+                 class="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/40 backdrop-blur-[2px] transition-opacity duration-300"
+                 x-transition:enter="ease-out duration-300"
+                 x-transition:enter-start="opacity-0"
+                 x-transition:enter-end="opacity-100"
+                 x-transition:leave="ease-in duration-200"
+                 x-transition:leave-start="opacity-100"
+                 x-transition:leave-end="opacity-0">
+                <div class="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-2xl flex flex-col items-center border border-slate-200 dark:border-slate-700 min-w-[200px]">
+                    <div class="relative mb-4">
+                        <div class="w-12 h-12 border-4 border-indigo-100 dark:border-slate-700 rounded-full"></div>
+                        <div class="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin absolute inset-0"></div>
+                    </div>
+                    <p class="text-slate-600 dark:text-slate-300 font-black text-xs tracking-[0.2em] uppercase">{{ __('database-controllers::messages.processing') }}</p>
+                </div>
+            </div>
 
             <!-- Page Footer -->
             <footer class="py-4 px-8 border-t border-slate-200 bg-white text-center md:text-left flex flex-col md:flex-row justify-between items-center gap-4">

@@ -163,4 +163,5 @@ return [
     'row_deleted' => 'Ligne supprimée avec succès !',
     'records_deleted' => ':count enregistrements supprimés avec succès !',
     'no_records_selected' => 'Aucun enregistrement sélectionné.',
+    'processing' => 'Traitement en cours...',
 ];

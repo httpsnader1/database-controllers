@@ -163,4 +163,5 @@ return [
     'row_deleted' => 'تم حذف السجل بنجاح!',
     'records_deleted' => 'تم حذف :count سجل بنجاح!',
     'no_records_selected' => 'لم يتم تحديد أي سجلات.',
+    'processing' => 'جاري المعالجة...',
 ];

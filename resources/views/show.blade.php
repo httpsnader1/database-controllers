@@ -120,7 +120,7 @@
                 <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest me-2 border-e pe-2 border-slate-100">{{ __('database-controllers::messages.rows_per_page') }}</span>
                 <select
                     class="bg-transparent text-sm font-bold text-slate-700 outline-none cursor-pointer pe-4"
-                    @change="let url = new URL(window.location.href); url.searchParams.set('per_page', $event.target.value); window.location.href = url.toString();"
+                    @change="isLoading = true; let url = new URL(window.location.href); url.searchParams.set('per_page', $event.target.value); window.location.href = url.toString();"
                 >
                     @foreach($perPageOptions as $option)
                         <option value="{{ $option }}" {{ (int)$perPage === (int)$option ? 'selected' : '' }}>{{ $option }}</option>
@@ -150,7 +150,7 @@
 
     <!-- Filtering Section -->
     <div x-show="showFilters" x-transition.origin.top.duration.400ms class="bg-white rounded-xl shadow-md border border-indigo-100 p-6 overflow-hidden">
-        <form method="GET" action="{{ route('database-controllers.table.show', $table) }}">
+        <form method="GET" action="{{ route('database-controllers.table.show', $table) }}" @submit="isLoading = true">
             <div class="flex items-center justify-between mb-4 border-b pb-3 border-slate-100">
                 <h3 class="font-bold text-slate-800 flex items-center">
                     <i class="fa-solid fa-filter me-2 text-indigo-500"></i>
@@ -197,7 +197,7 @@
 
                 <div x-show="filters.length > 0" class="flex justify-end pt-4 gap-3 items-center" x-transition>
                     @if(count($filters) > 0)
-                        <a href="{{ route('database-controllers.table.show', $table) }}" class="px-5 py-2 text-xs font-bold bg-rose-50 text-rose-500 border border-rose-100 rounded-lg hover:bg-rose-500 hover:text-white hover:border-rose-500 transition-all duration-300 uppercase tracking-widest active:scale-95">
+                        <a href="{{ route('database-controllers.table.show', $table) }}" @click="isLoading = true" class="px-5 py-2 text-xs font-bold bg-rose-50 text-rose-500 border border-rose-100 rounded-lg hover:bg-rose-500 hover:text-white hover:border-rose-500 transition-all duration-300 uppercase tracking-widest active:scale-95">
                             {{ __('database-controllers::messages.clear_results') }}
                         </a>
                     @endif
@@ -224,7 +224,7 @@
                                     $isCurrentSort = ($sortBy == $col);
                                     $nextDir = ($isCurrentSort && $sortDir == 'asc') ? 'desc' : 'asc';
                                 @endphp
-                                <a href="{{ request()->fullUrlWithQuery(['sort_by' => $col, 'sort_dir' => $nextDir]) }}" class="flex items-center justify-center w-full h-full px-6 py-4 hover:bg-slate-100/50 transition-colors">
+                                <a href="{{ request()->fullUrlWithQuery(['sort_by' => $col, 'sort_dir' => $nextDir]) }}" @click="isLoading = true" class="flex items-center justify-center w-full h-full px-6 py-4 hover:bg-slate-100/50 transition-colors">
                                     <span class="{{ $isCurrentSort ? 'text-indigo-600 font-black' : 'text-slate-500' }}">{{ $col }}</span>
                                     <span class="ms-2 flex flex-col text-[8px]">
                                         <i class="fa-solid fa-caret-up {{ $isCurrentSort && $sortDir == 'asc' ? 'text-indigo-600 scale-125' : 'text-slate-300 opacity-0 group-hover:opacity-100' }}"></i>
@@ -338,7 +338,7 @@
                 <h3 class="text-xl font-bold flex items-center"><i class="fa-solid fa-plus-circle mr-2"></i> {{ __('database-controllers::messages.add_new_record') }} <span class="mx-2 font-mono underline">{{ $table }}</span></h3>
                 <button @click="showAddModal = false" class="text-indigo-200 hover:text-white transition"><i class="fa-solid fa-times text-xl"></i></button>
             </div>
-            <form action="{{ route('database-controllers.table.store', $table) }}" method="POST" class="flex flex-col flex-grow overflow-hidden">
+            <form action="{{ route('database-controllers.table.store', $table) }}" method="POST" class="flex flex-col flex-grow overflow-hidden" @submit="isLoading = true">
                 @csrf
                 <div class="p-6 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-4">
                     @foreach($columns as $col)
@@ -383,7 +383,7 @@
                 <h3 class="text-xl font-bold flex items-center"><i class="fa-solid fa-pen-to-square mr-2"></i> {{ __('database-controllers::messages.edit_record') }} #<span x-text="editingRow['{{ $primaryKey }}']" class="ml-1"></span></h3>
                 <button @click="showEditModal = false" class="text-indigo-200 hover:text-white transition"><i class="fa-solid fa-times text-xl"></i></button>
             </div>
-            <form :action="'{{ route('database-controllers.table.update', [$table, 'ID']) }}'.replace('ID', editingRow['{{ $primaryKey }}'])" method="POST" class="flex flex-col flex-grow overflow-hidden">
+            <form :action="'{{ route('database-controllers.table.update', [$table, 'ID']) }}'.replace('ID', editingRow['{{ $primaryKey }}'])" method="POST" class="flex flex-col flex-grow overflow-hidden" @submit="isLoading = true">
                 @csrf
                 @method('PUT')
                 <div class="p-6 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -432,7 +432,7 @@
                 <h3 class="text-xl font-bold text-slate-800 mb-2">{{ __('database-controllers::messages.delete_record_title') }}</h3>
                 <p class="text-slate-500 text-sm mb-6">{{ __('database-controllers::messages.delete_record_confirm') }}</p>
                 <div class="flex flex-col space-y-2">
-                    <form :action="'{{ route('database-controllers.table.destroy', [$table, 'ID']) }}'.replace('ID', deletingId)" method="POST" class="w-full">
+                    <form :action="'{{ route('database-controllers.table.destroy', [$table, 'ID']) }}'.replace('ID', deletingId)" method="POST" class="w-full" @submit="isLoading = true">
                         @csrf
                         @method('DELETE')
                         <button type="submit" class="w-full py-3 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 transition shadow-lg">{{ __('database-controllers::messages.delete_confirm_btn') }}</button>
@@ -462,7 +462,7 @@
                         ]) !!}
                     </p>
 
-                    <form action="{{ route('database-controllers.table.bulk-delete', $table) }}" method="POST">
+                    <form action="{{ route('database-controllers.table.bulk-delete', $table) }}" method="POST" @submit="isLoading = true">
                         @csrf
                         <template x-for="id in selectedIds" :key="id">
                             <input type="hidden" name="ids[]" :value="id">
@@ -500,7 +500,7 @@
                         ]) !!}
                     </p>
 
-                    <form action="{{ route('database-controllers.table.truncate', $table) }}" method="POST">
+                    <form action="{{ route('database-controllers.table.truncate', $table) }}" method="POST" @submit="isLoading = true">
                         @csrf
                         <div class="flex flex-col space-y-3">
                             <button type="submit" class="w-full py-4 bg-rose-600 text-white rounded-2xl font-bold shadow-lg shadow-rose-600/20 active:scale-95 transition">
