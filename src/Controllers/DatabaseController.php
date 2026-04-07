@@ -168,8 +168,13 @@ class DatabaseController extends Controller
 
     public function export(Request $request)
     {
+        if (!function_exists('exec')) {
+            return back()->with('error', 'The PHP exec() function is disabled. Please enable it in your php.ini.');
+        }
+
         set_time_limit(0);
         ini_set('max_execution_time', 0);
+        ini_set('memory_limit', '-1');
 
         $dbName = DB::connection()->getDatabaseName();
         $prefix = config('database-controllers.backup_prefix', 'backup');
@@ -184,7 +189,7 @@ class DatabaseController extends Controller
              throw new \RuntimeException(sprintf('Directory "%s" was not created', $backupPath));
         }
 
-        $fullName = $backupPath . '/' . $fileName;
+        $fullName = $backupPath . DIRECTORY_SEPARATOR . $fileName;
 
         $host = config("database.connections.mysql.host", '127.0.0.1');
         $user = config("database.connections.mysql.username", 'root');
@@ -195,16 +200,16 @@ class DatabaseController extends Controller
         if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
             // Get current drive letter (e.g., C: or D:)
             $drive = substr(base_path(), 0, 2);
-            $laragonPath = $drive . '\\laragon\\bin\\mysql';
+            $laragonPath = $drive . DIRECTORY_SEPARATOR . 'laragon' . DIRECTORY_SEPARATOR . 'bin' . DIRECTORY_SEPARATOR . 'mysql';
 
             // Check current drive Laragon, then fallback to C: if app is not on C:
-            $searchPaths = [$laragonPath, 'C:\\laragon\\bin\\mysql'];
+            $searchPaths = [$laragonPath, 'C:' . DIRECTORY_SEPARATOR . 'laragon' . DIRECTORY_SEPARATOR . 'bin' . DIRECTORY_SEPARATOR . 'mysql'];
 
             foreach ($searchPaths as $path) {
                 if (is_dir($path)) {
                     $versions = array_diff(scandir($path, SCANDIR_SORT_DESCENDING), ['.', '..']);
                     foreach ($versions as $v) {
-                        $testPath = $path . '\\' . $v . '\\bin\\mysqldump.exe';
+                        $testPath = $path . DIRECTORY_SEPARATOR . $v . DIRECTORY_SEPARATOR . 'bin' . DIRECTORY_SEPARATOR . 'mysqldump.exe';
                         if (file_exists($testPath)) {
                             $mysqldump = '"' . $testPath . '"';
                             break 2;
@@ -224,13 +229,13 @@ class DatabaseController extends Controller
 
         $typeFlag = ($exportType === 'structure') ? "--no-data" : "";
 
-        // Command to be executed
-        $command = "{$mysqldump} --user={$user} {$passFlag} --host={$host} --port={$port} {$ignoreFlag} {$typeFlag} {$dbName} > \"{$fullName}\" 2>&1";
+        // Command to be executed - Using --quick for large databases to avoid memory issues, --single-transaction for InnoDB
+        $command = "{$mysqldump} --user={$user} {$passFlag} --host={$host} --port={$port} {$ignoreFlag} {$typeFlag} --quick --single-transaction --no-tablespaces --max_allowed_packet=512M {$dbName} > \"{$fullName}\" 2>&1";
 
         exec($command, $output, $returnVar);
 
         if ($returnVar !== 0) {
-            $errorMsg = !empty($output) ? implode(' ', $output) : "Unknown error (code: {$returnVar})";
+            $errorMsg = !empty($output) ? implode(' ', array_slice($output, 0, 100)) : "Unknown error (code: {$returnVar})";
             if (str_contains($errorMsg, 'not recognized')) {
                 $errorMsg = "'mysqldump' is not in PATH. Please add it or install it.";
             }
@@ -244,7 +249,7 @@ class DatabaseController extends Controller
 
             $zip = new \ZipArchive();
             $zipName = str_replace('.sql', '.zip', $fileName);
-            $zipPath = $backupPath . '/' . $zipName;
+            $zipPath = $backupPath . DIRECTORY_SEPARATOR . $zipName;
 
             if ($zip->open($zipPath, \ZipArchive::CREATE) === TRUE) {
                 $zip->addFile($fullName, $fileName);
@@ -263,7 +268,7 @@ class DatabaseController extends Controller
 
     public function downloadBackup($name)
     {
-        $path = storage_path('app/DatabaseControllers/backups/' . $name);
+        $path = storage_path('app/DatabaseControllers/backups' . DIRECTORY_SEPARATOR . $name);
         if (file_exists($path)) {
             return response()->download($path);
         }
@@ -272,8 +277,13 @@ class DatabaseController extends Controller
 
     public function import(Request $request)
     {
+        if (!function_exists('exec')) {
+            return back()->with('error', 'The PHP exec() function is disabled. Please enable it in your php.ini.');
+        }
+
         set_time_limit(0);
         ini_set('max_execution_time', 0);
+        ini_set('memory_limit', '-1');
 
         $request->validate([
             'sql_file' => 'required|file|mimes:sql,txt,zip'
@@ -289,12 +299,12 @@ class DatabaseController extends Controller
         $mysql = 'mysql';
         if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
             $drive = substr(base_path(), 0, 2);
-            $searchPaths = [$drive . '\\laragon\\bin\\mysql', 'C:\\laragon\\bin\\mysql'];
+            $searchPaths = [$drive . DIRECTORY_SEPARATOR . 'laragon' . DIRECTORY_SEPARATOR . 'bin' . DIRECTORY_SEPARATOR . 'mysql', 'C:' . DIRECTORY_SEPARATOR . 'laragon' . DIRECTORY_SEPARATOR . 'bin' . DIRECTORY_SEPARATOR . 'mysql'];
             foreach ($searchPaths as $path) {
                 if (is_dir($path)) {
                     $versions = array_diff(scandir($path, SCANDIR_SORT_DESCENDING), ['.', '..']);
                     foreach ($versions as $v) {
-                        $testPath = $path . '\\' . $v . '\\bin\\mysql.exe';
+                        $testPath = $path . DIRECTORY_SEPARATOR . $v . DIRECTORY_SEPARATOR . 'bin' . DIRECTORY_SEPARATOR . 'mysql.exe';
                         if (file_exists($testPath)) {
                             $mysql = '"' . $testPath . '"';
                             break 2;
@@ -327,7 +337,7 @@ class DatabaseController extends Controller
                 $foundSql = false;
                 foreach ($files as $f) {
                     if (str_ends_with(strtolower($f), '.sql')) {
-                        $sqlPath = $extractPath . '/' . $f;
+                        $sqlPath = $extractPath . DIRECTORY_SEPARATOR . $f;
                         $foundSql = true;
                         break;
                     }
@@ -343,7 +353,7 @@ class DatabaseController extends Controller
         }
 
         // Command to import: mysql -u user -p pass -h host -P port db < file
-        $command = "{$mysql} --user={$user} {$passFlag} --host={$host} --port={$port} {$dbName} < \"{$sqlPath}\" 2>&1";
+        $command = "{$mysql} --user={$user} {$passFlag} --host={$host} --port={$port} --max_allowed_packet=512M {$dbName} < \"{$sqlPath}\" 2>&1";
 
         exec($command, $output, $returnVar);
 
@@ -352,7 +362,7 @@ class DatabaseController extends Controller
         }
 
         if ($returnVar !== 0) {
-            $errorMsg = !empty($output) ? implode(' ', $output) : "Unknown error (code: {$returnVar})";
+            $errorMsg = !empty($output) ? implode(' ', array_slice($output, 0, 100)) : "Unknown error (code: {$returnVar})";
             return back()->with('error', __('database-controllers::messages.import_failed') . " {$errorMsg}");
         }
 
@@ -361,10 +371,15 @@ class DatabaseController extends Controller
 
     public function restoreBackup($name)
     {
+        if (!function_exists('exec')) {
+            return back()->with('error', 'The PHP exec() function is disabled. Please enable it in your php.ini.');
+        }
+
         set_time_limit(0);
         ini_set('max_execution_time', 0);
+        ini_set('memory_limit', '-1');
 
-        $backupPath = storage_path('app/DatabaseControllers/backups/' . $name);
+        $backupPath = storage_path('app/DatabaseControllers/backups' . DIRECTORY_SEPARATOR . $name);
 
         if (!file_exists($backupPath)) {
             return back()->with('error', __('database-controllers::messages.backup_not_found'));
@@ -379,12 +394,12 @@ class DatabaseController extends Controller
         $mysql = 'mysql';
         if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
             $drive = substr(base_path(), 0, 2);
-            $searchPaths = [$drive . '\\laragon\\bin\\mysql', 'C:\\laragon\\bin\\mysql'];
+            $searchPaths = [$drive . DIRECTORY_SEPARATOR . 'laragon' . DIRECTORY_SEPARATOR . 'bin' . DIRECTORY_SEPARATOR . 'mysql', 'C:' . DIRECTORY_SEPARATOR . 'laragon' . DIRECTORY_SEPARATOR . 'bin' . DIRECTORY_SEPARATOR . 'mysql'];
             foreach ($searchPaths as $path) {
                 if (is_dir($path)) {
                     $versions = array_diff(scandir($path, SCANDIR_SORT_DESCENDING), ['.', '..']);
                     foreach ($versions as $v) {
-                        $testPath = $path . '\\' . $v . '\\bin\\mysql.exe';
+                        $testPath = $path . DIRECTORY_SEPARATOR . $v . DIRECTORY_SEPARATOR . 'bin' . DIRECTORY_SEPARATOR . 'mysql.exe';
                         if (file_exists($testPath)) {
                             $mysql = '"' . $testPath . '"';
                             break 2;
@@ -416,7 +431,7 @@ class DatabaseController extends Controller
                 $foundSql = false;
                 foreach ($files as $f) {
                     if (str_ends_with(strtolower($f), '.sql')) {
-                        $sqlPath = $extractPath . '/' . $f;
+                        $sqlPath = $extractPath . DIRECTORY_SEPARATOR . $f;
                         $foundSql = true;
                         break;
                     }
@@ -431,7 +446,7 @@ class DatabaseController extends Controller
             }
         }
 
-        $command = "{$mysql} --user={$user} {$passFlag} --host={$host} --port={$port} {$dbName} < \"{$sqlPath}\" 2>&1";
+        $command = "{$mysql} --user={$user} {$passFlag} --host={$host} --port={$port} --max_allowed_packet=512M {$dbName} < \"{$sqlPath}\" 2>&1";
 
         exec($command, $output, $returnVar);
 
@@ -440,7 +455,7 @@ class DatabaseController extends Controller
         }
 
         if ($returnVar !== 0) {
-            $errorMsg = !empty($output) ? implode(' ', $output) : "Unknown error (code: {$returnVar})";
+            $errorMsg = !empty($output) ? implode(' ', array_slice($output, 0, 100)) : "Unknown error (code: {$returnVar})";
             return back()->with('error', __('database-controllers::messages.restoration_failed') . " {$errorMsg}");
         }
 
@@ -453,7 +468,7 @@ class DatabaseController extends Controller
             $objects = scandir($dir);
             foreach ($objects as $object) {
                 if ($object != "." && $object != "..") {
-                    if (is_dir($dir . DIRECTORY_SEPARATOR . $object) && !is_link($dir . "/" . $object))
+                    if (is_dir($dir . DIRECTORY_SEPARATOR . $object) && !is_link($dir . DIRECTORY_SEPARATOR . $object))
                         $this->recursiveRmdir($dir . DIRECTORY_SEPARATOR . $object);
                     else
                         unlink($dir . DIRECTORY_SEPARATOR . $object);
@@ -465,7 +480,7 @@ class DatabaseController extends Controller
 
     public function deleteBackup($name)
     {
-        $path = storage_path('app/DatabaseControllers/backups/' . $name);
+        $path = storage_path('app/DatabaseControllers/backups' . DIRECTORY_SEPARATOR . $name);
         if (file_exists($path)) {
             unlink($path);
             return back()->with('success', __('database-controllers::messages.backup_deleted'));
@@ -508,12 +523,12 @@ class DatabaseController extends Controller
 
     private function getLastBackupDate()
     {
-        $backupPath = storage_path('app/DatabaseControllers/backups');
+        $backupPath = storage_path('app/DatabaseControllers' . DIRECTORY_SEPARATOR . 'backups');
         if (is_dir($backupPath)) {
             $files = scandir($backupPath, SCANDIR_SORT_DESCENDING);
             foreach ($files as $file) {
                 if (str_ends_with($file, '.sql')) {
-                    return date('Y-m-d H:i', filemtime($backupPath . '/' . $file));
+                    return date('Y-m-d H:i', filemtime($backupPath . DIRECTORY_SEPARATOR . $file));
                 }
             }
         }
