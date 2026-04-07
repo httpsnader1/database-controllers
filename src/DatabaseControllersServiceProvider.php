@@ -13,6 +13,11 @@ class DatabaseControllersServiceProvider extends ServiceProvider
         $this->loadRoutesFrom(__DIR__ . '/../routes/web.php');
 
         if ($this->app->runningInConsole()) {
+            $this->commands([
+                Console\Commands\ChunkedImportCommand::class,
+                Console\Commands\DbRestoreCommand::class,
+            ]);
+
             $this->publishes([
                 __DIR__ . '/../config/database-controllers.php' => config_path('database-controllers.php'),
             ], 'config');

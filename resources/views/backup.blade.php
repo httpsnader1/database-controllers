@@ -274,6 +274,13 @@
                                 </p>
                             </div>
 
+                            <div class="mb-6 flex items-center justify-center space-x-2">
+                                <input type="checkbox" name="background" value="1" id="background_import" class="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 cursor-pointer">
+                                <label for="background_import" class="text-xs font-bold text-slate-500 cursor-pointer hover:text-indigo-600 transition">
+                                    {{ __('database-controllers::messages.run_in_background') }}
+                                </label>
+                            </div>
+
                             <div class="flex flex-col space-y-3">
                                 <button type="submit"
                                         class="w-full py-4 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg shadow-indigo-600/20 active:scale-95 transition">{{ __('database-controllers::messages.restore_now_btn') }}</button>
@@ -328,6 +335,13 @@
                                 :action="'{{ route('database-controllers.backup.restore', 'FILENAME') }}'.replace('FILENAME', restoringBackup)"
                                 method="POST" class="w-full" @submit="isRestoring = true; isLoading = true">
                                 @csrf
+                                <div class="mb-5 flex items-center justify-center space-x-2">
+                                    <input type="checkbox" name="background" value="1" id="background_restore" class="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 cursor-pointer">
+                                    <label for="background_restore" class="text-xs font-bold text-slate-500 cursor-pointer hover:text-indigo-600 transition">
+                                        {{ __('database-controllers::messages.run_in_background') }}
+                                    </label>
+                                </div>
+
                                 <button type="submit"
                                         class="w-full py-4 bg-emerald-600 text-white rounded-2xl font-bold hover:bg-emerald-700 transition shadow-lg shadow-emerald-600/20 active:scale-95">{{ __('database-controllers::messages.restore_confirm_btn') }}</button>
                             </form>

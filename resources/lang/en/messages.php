@@ -163,5 +163,7 @@ return [
     'row_deleted' => 'Row deleted successfully!',
     'records_deleted' => ':count records deleted successfully!',
     'no_records_selected' => 'No records selected.',
+    'run_in_background' => 'Run in Background (Recommended for Large Files)',
+    'job_queued' => 'The import job for \':name\' has been queued in the background. Please check logs for progress.',
     'processing' => 'Processing...',
 ];

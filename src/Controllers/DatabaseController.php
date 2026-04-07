@@ -6,6 +6,9 @@ use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Http\Request;
+use Httpsnader1\DatabaseControllers\Jobs\ImportDatabaseJob;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Artisan;
 
 class DatabaseController extends Controller
 {
@@ -265,22 +268,40 @@ class DatabaseController extends Controller
         ini_set('memory_limit', '-1');
 
         $request->validate([
-            'sql_file' => 'required|file|mimes:sql,txt,zip'
+            'sql_file' => 'required|file|mimes:sql,txt,zip',
+            'background' => 'nullable|boolean'
         ]);
 
         $file = $request->file('sql_file');
+        $background = (bool) $request->input('background');
         $dbName = DB::connection()->getDatabaseName();
         $host = config("database.connections.mysql.host", '127.0.0.1');
         $user = config("database.connections.mysql.username", 'root');
         $pass = config("database.connections.mysql.password", '');
         $port = config("database.connections.mysql.port", '3306');
 
-        $passFlag = !empty($pass) ? "--password=\"{$pass}\"" : "";
         $tempPath = $file->getRealPath();
         $sqlPath = $tempPath;
         $extractPath = null;
+        $isZip = $file->getClientOriginalExtension() === 'zip';
 
-        if ($file->getClientOriginalExtension() === 'zip') {
+        if ($background) {
+            // Move uploaded file to a persistent temp location
+            $storageFolder = storage_path('app/DatabaseControllers/temp_imports');
+            if (!is_dir($storageFolder) && !mkdir($storageFolder, 0755, true) && !is_dir($storageFolder)) {
+                throw new \RuntimeException(sprintf('Directory "%s" was not created', $storageFolder));
+            }
+
+            $persistentPath = $storageFolder . DIRECTORY_SEPARATOR . time() . '_' . $file->getClientOriginalName();
+            move_uploaded_file($tempPath, $persistentPath);
+            $sqlPath = $persistentPath;
+
+            ImportDatabaseJob::dispatch($sqlPath, $dbName, $host, $user, $pass, $port);
+
+            return back()->with('success', __('database-controllers::messages.job_queued', ['name' => $file->getClientOriginalName()]));
+        }
+
+        if ($isZip) {
             if (!class_exists('\ZipArchive')) {
                 return back()->with('error', 'PHP ZipArchive extension is not installed.');
             }
@@ -313,7 +334,7 @@ class DatabaseController extends Controller
             }
         }
 
-        // Perform the import
+        // Perform the import synchronously
         [$returnVar, $output] = $this->performImport($sqlPath, $dbName, $host, $user, $pass, $port);
 
         if ($extractPath) {
@@ -328,7 +349,7 @@ class DatabaseController extends Controller
         return back()->with('success', __('database-controllers::messages.db_restored_from', ['name' => $file->getClientOriginalName()]));
     }
 
-    public function restoreBackup($name)
+    public function restoreBackup($name, Request $request)
     {
         if (!function_exists('exec')) {
             return back()->with('error', 'The PHP exec() function is disabled. Please enable it in your php.ini.');
@@ -338,6 +359,7 @@ class DatabaseController extends Controller
         ini_set('max_execution_time', 0);
         ini_set('memory_limit', '-1');
 
+        $background = (bool) $request->input('background');
         $backupPath = storage_path('app/DatabaseControllers/backups' . DIRECTORY_SEPARATOR . $name);
 
         if (!file_exists($backupPath)) {
@@ -349,6 +371,11 @@ class DatabaseController extends Controller
         $user = config("database.connections.mysql.username", 'root');
         $pass = config("database.connections.mysql.password", '');
         $port = config("database.connections.mysql.port", '3306');
+
+        if ($background) {
+            ImportDatabaseJob::dispatch($backupPath, $dbName, $host, $user, $pass, $port);
+            return back()->with('success', __('database-controllers::messages.job_queued', ['name' => $name]));
+        }
 
         $sqlPath = $backupPath;
         $extractPath = null;
@@ -523,17 +550,17 @@ class DatabaseController extends Controller
 
     private function performImport($sqlPath, $dbName, $host, $user, $pass, $port)
     {
-        $mysql = $this->getBinaryPath('mysql');
-        $passFlag = !empty($pass) ? "--password=\"{$pass}\"" : "";
+        $exitCode = Artisan::call('db:restore', [
+            'path' => $sqlPath,
+            '--db' => $dbName,
+            '--host' => $host,
+            '--user' => $user,
+            '--pass' => $pass,
+            '--port' => $port,
+        ]);
 
-        // Optimizations for faster import
-        $initCommand = "SET FOREIGN_KEY_CHECKS=0; SET UNIQUE_CHECKS=0; SET AUTOCOMMIT=1;";
-
-        $command = "{$mysql} --user={$user} {$passFlag} --host={$host} --port={$port} --max_allowed_packet=512M --binary-mode --connect-timeout=10 --net_buffer_length=1048576 --init-command=\"{$initCommand}\" {$dbName} < \"{$sqlPath}\" 2>&1";
-
-        exec($command, $output, $returnVar);
-
-        return [$returnVar, $output];
+        $output = Artisan::output();
+        return [$exitCode, explode(PHP_EOL, $output)];
     }
 
     public function show(Request $request, $table)
