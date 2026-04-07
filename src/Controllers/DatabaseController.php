@@ -196,28 +196,7 @@ class DatabaseController extends Controller
         $pass = config("database.connections.mysql.password", '');
         $port = config("database.connections.mysql.port", '3306');
 
-        $mysqldump = 'mysqldump';
-        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-            // Get current drive letter (e.g., C: or D:)
-            $drive = substr(base_path(), 0, 2);
-            $laragonPath = $drive . DIRECTORY_SEPARATOR . 'laragon' . DIRECTORY_SEPARATOR . 'bin' . DIRECTORY_SEPARATOR . 'mysql';
-
-            // Check current drive Laragon, then fallback to C: if app is not on C:
-            $searchPaths = [$laragonPath, 'C:' . DIRECTORY_SEPARATOR . 'laragon' . DIRECTORY_SEPARATOR . 'bin' . DIRECTORY_SEPARATOR . 'mysql'];
-
-            foreach ($searchPaths as $path) {
-                if (is_dir($path)) {
-                    $versions = array_diff(scandir($path, SCANDIR_SORT_DESCENDING), ['.', '..']);
-                    foreach ($versions as $v) {
-                        $testPath = $path . DIRECTORY_SEPARATOR . $v . DIRECTORY_SEPARATOR . 'bin' . DIRECTORY_SEPARATOR . 'mysqldump.exe';
-                        if (file_exists($testPath)) {
-                            $mysqldump = '"' . $testPath . '"';
-                            break 2;
-                        }
-                    }
-                }
-            }
-        }
+        $mysqldump = $this->getBinaryPath('mysqldump');
 
         $passFlag = !empty($pass) ? "--password=\"{$pass}\"" : "";
 
@@ -230,7 +209,7 @@ class DatabaseController extends Controller
         $typeFlag = ($exportType === 'structure') ? "--no-data" : "";
 
         // Command to be executed - Using --quick for large databases to avoid memory issues, --single-transaction for InnoDB
-        $command = "{$mysqldump} --user={$user} {$passFlag} --host={$host} --port={$port} {$ignoreFlag} {$typeFlag} --quick --single-transaction --no-tablespaces --max_allowed_packet=512M {$dbName} > \"{$fullName}\" 2>&1";
+        $command = "{$mysqldump} --user={$user} {$passFlag} --host={$host} --port={$port} {$ignoreFlag} {$typeFlag} --quick --single-transaction --no-tablespaces --hex-blob --max_allowed_packet=512M --set-gtid-purged=OFF {$dbName} > \"{$fullName}\" 2>&1";
 
         exec($command, $output, $returnVar);
 
@@ -296,24 +275,6 @@ class DatabaseController extends Controller
         $pass = config("database.connections.mysql.password", '');
         $port = config("database.connections.mysql.port", '3306');
 
-        $mysql = 'mysql';
-        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-            $drive = substr(base_path(), 0, 2);
-            $searchPaths = [$drive . DIRECTORY_SEPARATOR . 'laragon' . DIRECTORY_SEPARATOR . 'bin' . DIRECTORY_SEPARATOR . 'mysql', 'C:' . DIRECTORY_SEPARATOR . 'laragon' . DIRECTORY_SEPARATOR . 'bin' . DIRECTORY_SEPARATOR . 'mysql'];
-            foreach ($searchPaths as $path) {
-                if (is_dir($path)) {
-                    $versions = array_diff(scandir($path, SCANDIR_SORT_DESCENDING), ['.', '..']);
-                    foreach ($versions as $v) {
-                        $testPath = $path . DIRECTORY_SEPARATOR . $v . DIRECTORY_SEPARATOR . 'bin' . DIRECTORY_SEPARATOR . 'mysql.exe';
-                        if (file_exists($testPath)) {
-                            $mysql = '"' . $testPath . '"';
-                            break 2;
-                        }
-                    }
-                }
-            }
-        }
-
         $passFlag = !empty($pass) ? "--password=\"{$pass}\"" : "";
         $tempPath = $file->getRealPath();
         $sqlPath = $tempPath;
@@ -352,10 +313,8 @@ class DatabaseController extends Controller
             }
         }
 
-        // Command to import: mysql -u user -p pass -h host -P port db < file
-        $command = "{$mysql} --user={$user} {$passFlag} --host={$host} --port={$port} --max_allowed_packet=512M {$dbName} < \"{$sqlPath}\" 2>&1";
-
-        exec($command, $output, $returnVar);
+        // Perform the import
+        [$returnVar, $output] = $this->performImport($sqlPath, $dbName, $host, $user, $pass, $port);
 
         if ($extractPath) {
             $this->recursiveRmdir($extractPath);
@@ -391,25 +350,6 @@ class DatabaseController extends Controller
         $pass = config("database.connections.mysql.password", '');
         $port = config("database.connections.mysql.port", '3306');
 
-        $mysql = 'mysql';
-        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-            $drive = substr(base_path(), 0, 2);
-            $searchPaths = [$drive . DIRECTORY_SEPARATOR . 'laragon' . DIRECTORY_SEPARATOR . 'bin' . DIRECTORY_SEPARATOR . 'mysql', 'C:' . DIRECTORY_SEPARATOR . 'laragon' . DIRECTORY_SEPARATOR . 'bin' . DIRECTORY_SEPARATOR . 'mysql'];
-            foreach ($searchPaths as $path) {
-                if (is_dir($path)) {
-                    $versions = array_diff(scandir($path, SCANDIR_SORT_DESCENDING), ['.', '..']);
-                    foreach ($versions as $v) {
-                        $testPath = $path . DIRECTORY_SEPARATOR . $v . DIRECTORY_SEPARATOR . 'bin' . DIRECTORY_SEPARATOR . 'mysql.exe';
-                        if (file_exists($testPath)) {
-                            $mysql = '"' . $testPath . '"';
-                            break 2;
-                        }
-                    }
-                }
-            }
-        }
-
-        $passFlag = !empty($pass) ? "--password=\"{$pass}\"" : "";
         $sqlPath = $backupPath;
         $extractPath = null;
 
@@ -446,9 +386,8 @@ class DatabaseController extends Controller
             }
         }
 
-        $command = "{$mysql} --user={$user} {$passFlag} --host={$host} --port={$port} --max_allowed_packet=512M {$dbName} < \"{$sqlPath}\" 2>&1";
-
-        exec($command, $output, $returnVar);
+        // Perform the import
+        [$returnVar, $output] = $this->performImport($sqlPath, $dbName, $host, $user, $pass, $port);
 
         if ($extractPath) {
             $this->recursiveRmdir($extractPath);
@@ -554,6 +493,47 @@ class DatabaseController extends Controller
             }
         }
         return 'Never';
+    }
+
+    private function getBinaryPath($binary)
+    {
+        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+            $drive = substr(base_path(), 0, 2);
+            $searchPaths = [
+                $drive . DIRECTORY_SEPARATOR . 'laragon' . DIRECTORY_SEPARATOR . 'bin' . DIRECTORY_SEPARATOR . 'mysql',
+                'C:' . DIRECTORY_SEPARATOR . 'laragon' . DIRECTORY_SEPARATOR . 'bin' . DIRECTORY_SEPARATOR . 'mysql'
+            ];
+
+            foreach ($searchPaths as $path) {
+                if (is_dir($path)) {
+                    $versions = array_diff(scandir($path, SCANDIR_SORT_DESCENDING), ['.', '..']);
+                    foreach ($versions as $v) {
+                        $testPath = $path . DIRECTORY_SEPARATOR . $v . DIRECTORY_SEPARATOR . 'bin' . DIRECTORY_SEPARATOR . "{$binary}.exe";
+                        if (file_exists($testPath)) {
+                            return '"' . $testPath . '"';
+                        }
+                    }
+                }
+            }
+        }
+
+        // Fallback to search in path or direct binary name
+        return $binary;
+    }
+
+    private function performImport($sqlPath, $dbName, $host, $user, $pass, $port)
+    {
+        $mysql = $this->getBinaryPath('mysql');
+        $passFlag = !empty($pass) ? "--password=\"{$pass}\"" : "";
+
+        // Optimizations for faster import
+        $initCommand = "SET FOREIGN_KEY_CHECKS=0; SET UNIQUE_CHECKS=0; SET AUTOCOMMIT=1;";
+
+        $command = "{$mysql} --user={$user} {$passFlag} --host={$host} --port={$port} --max_allowed_packet=512M --binary-mode --connect-timeout=10 --net_buffer_length=1048576 --init-command=\"{$initCommand}\" {$dbName} < \"{$sqlPath}\" 2>&1";
+
+        exec($command, $output, $returnVar);
+
+        return [$returnVar, $output];
     }
 
     public function show(Request $request, $table)
