@@ -45,7 +45,7 @@ If you are developing locally and have the package in a `packages` folder:
     }
 ],
 "require": {
-    "httpsnader1/database-controllers": "dev-main"
+    "httpsnader1/database-controllers": "dev-master"
 }
 ```
 
