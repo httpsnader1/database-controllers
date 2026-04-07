@@ -3,9 +3,9 @@
 @section('title', __('database-controllers::messages.table') . " : {$table}")
 
 @section('content')
-<div x-data="{ 
-    showAddModal: false, 
-    showEditModal: false, 
+<div x-data="{
+    showAddModal: false,
+    showEditModal: false,
     showDeleteModal: false,
     showViewModal: false,
     showFilters: {{ count($filters) > 0 ? 'true' : 'false' }},
@@ -113,11 +113,11 @@
             <i class="fa-solid fa-chevron-right rtl:rotate-180 mx-2 text-xs text-slate-300"></i>
             <span class="text-slate-800 font-bold bg-indigo-50 px-2 py-1 rounded border border-indigo-100 font-mono text-[11px] uppercase tracking-wider">{{ $table }}</span>
         </nav>
-        
+
         <div class="flex items-center gap-3">
              <div class="flex items-center bg-white border border-slate-200 rounded-lg px-3 py-2 shadow-sm">
                 <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest me-2 border-e pe-2 border-slate-100">{{ __('database-controllers::messages.rows_per_page') }}</span>
-                <select 
+                <select
                     class="bg-transparent text-sm font-bold text-slate-700 outline-none cursor-pointer pe-4"
                     @change="let url = new URL(window.location.href); url.searchParams.set('per_page', $event.target.value); window.location.href = url.toString();"
                 >
@@ -128,11 +128,11 @@
              </div>
 
              <button x-show="selectedIds.length > 0" @click="showBulkDeleteModal = true" class="inline-flex items-center justify-center px-4 py-2 bg-rose-50 border border-rose-200 text-rose-600 rounded-lg text-sm font-bold hover:bg-rose-100 transition shadow-sm active:scale-95 animate-fadeIn" x-transition>
-                <i class="fa-solid fa-trash-can me-2 text-xs"></i> 
+                <i class="fa-solid fa-trash-can me-2 text-xs"></i>
                 <span>{{ __('database-controllers::messages.delete_selected') }} (<span x-text="selectedIds.length"></span>)</span>
              </button>
              <button @click="showFilters = !showFilters" class="inline-flex items-center justify-center px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg text-sm font-bold hover:bg-slate-50 transition shadow-sm active:scale-95" :class="showFilters ? 'ring-2 ring-indigo-500 border-indigo-200' : ''">
-                <i class="fa-solid fa-filter me-2 text-xs" :class="showFilters ? 'text-indigo-600' : 'text-slate-400'"></i> 
+                <i class="fa-solid fa-filter me-2 text-xs" :class="showFilters ? 'text-indigo-600' : 'text-slate-400'"></i>
                 <span>{{ __('database-controllers::messages.filters') }}</span>
                 @if(count($filters) > 0)
                     <span class="ml-2 bg-indigo-600 text-white text-[10px] px-1.5 py-0.5 rounded-full">{{ count($filters) }}</span>
@@ -156,7 +156,7 @@
                     <i class="fa-solid fa-plus me-1 text-[10px]"></i> {{ __('database-controllers::messages.add_filter') }}
                 </button>
             </div>
-            
+
             <div class="space-y-3">
                 <template x-for="(filter, index) in filters" :key="index">
                     <div class="flex flex-col md:flex-row items-start md:items-center gap-3 bg-slate-50 p-3 rounded-lg border border-slate-100 relative group animate-fadeIn">
@@ -236,10 +236,10 @@
                 </thead>
                 <tbody class="divide-y divide-slate-100">
                     @forelse($rows as $row)
-                        <tr class="hover:bg-slate-50 transition-all duration-200 group cursor-pointer" 
+                        <tr class="hover:bg-slate-50 transition-all duration-200 group cursor-pointer"
                             :class="selectedIds.includes('{{ $row->$primaryKey }}') ? 'bg-indigo-50/20' : ''"
                             @click="viewingRow = {{ json_encode($row) }}; showViewModal = true">
-                            <td class="px-6 py-4 text-center border-l-4 transition-all duration-200" 
+                            <td class="px-6 py-4 text-center border-l-4 transition-all duration-200"
                                 :class="selectedIds.includes('{{ $row->$primaryKey }}') ? 'border-indigo-500' : 'border-transparent'"
                                 @click.stop="">
                                 <input type="checkbox" :checked="selectedIds.includes('{{ $row->$primaryKey }}')" @change="toggleOne('{{ $row->$primaryKey }}')" class="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-600 transition cursor-pointer">
@@ -254,14 +254,14 @@
                                 </td>
                             @endforeach
                             <td class="px-6 py-4 text-center sticky end-0 border-s rtl:shadow-[4px_0_6px_-2px_rgba(0,0,0,0.05)] ltr:shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.05)] bg-white group-hover:bg-slate-50 transition border-slate-100" @click.stop="">
-                                <div class="flex items-center justify-center gap-2">
-                                    <button @click="viewingRow = {{ json_encode($row) }}; showViewModal = true" class="p-2 text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-md transition" title="{{ __('database-controllers::messages.view_details') }}">
+                                <div class="flex items-center justify-center gap-1">
+                                    <button @click="viewingRow = {{ json_encode($row) }}; showViewModal = true" class="w-10 h-10 text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-md transition" title="{{ __('database-controllers::messages.view_details') }}">
                                         <i class="fa-solid fa-eye"></i>
                                     </button>
-                                    <button @click="editingRow = {{ json_encode($row) }}; showEditModal = true" class="p-2 text-indigo-400 hover:bg-indigo-100 rounded-md transition" title="{{ __('database-controllers::messages.edit') }}">
+                                    <button @click="editingRow = {{ json_encode($row) }}; showEditModal = true" class="w-10 h-10 text-indigo-400 hover:bg-indigo-100 rounded-md transition" title="{{ __('database-controllers::messages.edit') }}">
                                         <i class="fa-solid fa-pen-to-square"></i>
                                     </button>
-                                    <button @click="deletingId = '{{ $row->$primaryKey }}'; showDeleteModal = true" class="p-2 text-red-500 hover:bg-red-100 rounded-md transition" title="{{ __('database-controllers::messages.delete') }}">
+                                    <button @click="deletingId = '{{ $row->$primaryKey }}'; showDeleteModal = true" class="w-10 h-10 text-red-500 hover:bg-red-100 rounded-md transition" title="{{ __('database-controllers::messages.delete') }}">
                                         <i class="fa-solid fa-trash-can"></i>
                                     </button>
                                 </div>
@@ -280,12 +280,12 @@
                 </tbody>
             </table>
         </div>
-        
+
         <!-- Pagination and Summary -->
         <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex flex-col md:flex-row items-center justify-between gap-4">
             <div class="text-xs font-bold text-slate-500">
-                {{ __('database-controllers::messages.showing') }} <span class="text-indigo-600">{{ number_format($rows->firstItem()) }}</span> 
-                {{ __('database-controllers::messages.to') }} <span class="text-indigo-600">{{ number_format($rows->lastItem()) }}</span> 
+                {{ __('database-controllers::messages.showing') }} <span class="text-indigo-600">{{ number_format($rows->firstItem()) }}</span>
+                {{ __('database-controllers::messages.to') }} <span class="text-indigo-600">{{ number_format($rows->lastItem()) }}</span>
                 {{ __('database-controllers::messages.of') }} <span class="text-slate-800">{{ number_format($rows->total()) }}</span> {{ __('database-controllers::messages.results') }}
             </div>
             <div>
@@ -463,13 +463,13 @@
                     <p class="text-slate-500 text-sm leading-relaxed mb-8">
                         You are about to delete <span class="font-black text-slate-800" x-text="selectedIds.length"></span> records from the <span class="font-mono bg-slate-100 px-1 rounded">{{ $table }}</span> table. This action is <span class="text-rose-600 font-bold">permanent</span> and cannot be undone.
                     </p>
-                    
+
                     <form action="{{ route('database-controllers.table.bulk-delete', $table) }}" method="POST">
                         @csrf
                         <template x-for="id in selectedIds" :key="id">
                             <input type="hidden" name="ids[]" :value="id">
                         </template>
-                        
+
                         <div class="flex flex-col space-y-3">
                             <button type="submit" class="w-full py-4 bg-rose-600 text-white rounded-2xl font-bold shadow-lg shadow-rose-600/20 active:scale-95 transition">
                                 Yes, Delete All Selected

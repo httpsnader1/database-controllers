@@ -42,7 +42,7 @@ class DatabaseController extends Controller
         $configExcluded = config('database-controllers.excluded_tables', []);
         $dynamicExcluded = [];
         $filePath = storage_path('app/DatabaseControllers/excluded-tables.json');
-        
+
         if (file_exists($filePath)) {
             $dynamicExcluded = json_decode(file_get_contents($filePath), true) ?: [];
         }
@@ -55,14 +55,14 @@ class DatabaseController extends Controller
         try {
             $dbName = DB::connection()->getDatabaseName();
             $excluded = $this->getExcludedTables();
-            
+
             if (config('database.default') === 'sqlite') {
                 $dbTables = DB::select("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'");
                 $tables = array_map(fn($t) => $t->name, $dbTables);
             } else {
                 // For MySQL/MariaDB and others
                 $dbTables = DB::select("SELECT TABLE_NAME as name FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = ?", [$dbName]);
-                
+
                 if (empty($dbTables)) {
                     // Fallback if INFORMATION_SCHEMA is restricted
                     $tables = Schema::getTableListing();
@@ -95,7 +95,7 @@ class DatabaseController extends Controller
     {
         $activeConnection = config('database.default');
         $tables = $this->getTables();
-        
+
         $dbInfo = [
             __('database-controllers::messages.connection') => $activeConnection,
             __('database-controllers::messages.host') => config("database.connections.{$activeConnection}.host"),
@@ -105,7 +105,7 @@ class DatabaseController extends Controller
             __('database-controllers::messages.php_version') => PHP_VERSION,
             __('database-controllers::messages.laravel_version') => app()->version(),
         ];
-        
+
         $totalRows = 0;
         foreach ($tables as $table) {
             $totalRows += $table['count'];
@@ -126,7 +126,7 @@ class DatabaseController extends Controller
         $tables = $this->getTables();
         $backups = [];
         $backupPath = storage_path('app/DatabaseControllers/backups');
-        
+
         if (is_dir($backupPath)) {
             $files = scandir($backupPath);
             foreach ($files as $file) {
@@ -139,7 +139,7 @@ class DatabaseController extends Controller
                 }
             }
         }
-        
+
         usort($backups, fn($a, $b) => $b['date'] <=> $a['date']);
 
         return view('database-controllers::backup', [
@@ -156,8 +156,8 @@ class DatabaseController extends Controller
         }));
 
         $folder = storage_path('app/DatabaseControllers');
-        if (!is_dir($folder)) {
-            mkdir($folder, 0755, true);
+        if (!is_dir($folder) && !mkdir($folder, 0755, true) && !is_dir($folder)) {
+             throw new \RuntimeException(sprintf('Directory "%s" was not created', $folder));
         }
 
         $filePath = $folder . '/excluded-tables.json';
@@ -166,15 +166,22 @@ class DatabaseController extends Controller
         return back()->with('success', __('database-controllers::messages.excluded_tables_updated'));
     }
 
-    public function export()
+    public function export(Request $request)
     {
+        set_time_limit(0);
+        ini_set('max_execution_time', 0);
+
         $dbName = DB::connection()->getDatabaseName();
         $prefix = config('database-controllers.backup_prefix', 'backup');
-        $fileName = "{$prefix}-" . $dbName . "-" . date('Y-m-d_H-i-s') . ".sql";
+        $exportType = $request->get('export_type', 'both'); // both or structure
+        $format = $request->get('format', 'sql'); // sql or zip
+
+        $typeSuffix = ($exportType === 'structure') ? '-structure' : '';
+        $fileName = "{$prefix}-" . $dbName . "{$typeSuffix}-" . date('Y-m-d_H-i-s') . ".sql";
         $backupPath = storage_path('app/DatabaseControllers/backups');
 
-        if (!is_dir($backupPath)) {
-            mkdir($backupPath, 0755, true);
+        if (!is_dir($backupPath) && !mkdir($backupPath, 0755, true) && !is_dir($backupPath)) {
+             throw new \RuntimeException(sprintf('Directory "%s" was not created', $backupPath));
         }
 
         $fullName = $backupPath . '/' . $fileName;
@@ -189,10 +196,10 @@ class DatabaseController extends Controller
             // Get current drive letter (e.g., C: or D:)
             $drive = substr(base_path(), 0, 2);
             $laragonPath = $drive . '\\laragon\\bin\\mysql';
-            
+
             // Check current drive Laragon, then fallback to C: if app is not on C:
             $searchPaths = [$laragonPath, 'C:\\laragon\\bin\\mysql'];
-            
+
             foreach ($searchPaths as $path) {
                 if (is_dir($path)) {
                     $versions = array_diff(scandir($path, SCANDIR_SORT_DESCENDING), ['.', '..']);
@@ -208,16 +215,18 @@ class DatabaseController extends Controller
         }
 
         $passFlag = !empty($pass) ? "--password=\"{$pass}\"" : "";
-        
+
         $excluded = $this->getExcludedTables();
         $ignoreFlag = "";
         foreach ($excluded as $exTable) {
             $ignoreFlag .= "--ignore-table={$dbName}.{$exTable} ";
         }
 
+        $typeFlag = ($exportType === 'structure') ? "--no-data" : "";
+
         // Command to be executed
-        $command = "{$mysqldump} --user={$user} {$passFlag} --host={$host} --port={$port} {$ignoreFlag} {$dbName} > \"{$fullName}\" 2>&1";
-        
+        $command = "{$mysqldump} --user={$user} {$passFlag} --host={$host} --port={$port} {$ignoreFlag} {$typeFlag} {$dbName} > \"{$fullName}\" 2>&1";
+
         exec($command, $output, $returnVar);
 
         if ($returnVar !== 0) {
@@ -226,6 +235,27 @@ class DatabaseController extends Controller
                 $errorMsg = "'mysqldump' is not in PATH. Please add it or install it.";
             }
             return back()->with('error', __('database-controllers::messages.backup_failed') . " {$errorMsg}. [Command: {$command}]");
+        }
+
+        if ($format === 'zip') {
+            if (!class_exists('\ZipArchive')) {
+                return back()->with('error', 'PHP ZipArchive extension is not installed.');
+            }
+
+            $zip = new \ZipArchive();
+            $zipName = str_replace('.sql', '.zip', $fileName);
+            $zipPath = $backupPath . '/' . $zipName;
+
+            if ($zip->open($zipPath, \ZipArchive::CREATE) === TRUE) {
+                $zip->addFile($fullName, $fileName);
+                $zip->close();
+                if (file_exists($fullName)) {
+                    unlink($fullName);
+                }
+                $fileName = $zipName;
+            } else {
+                return back()->with('error', __('database-controllers::messages.zip_create_failed'));
+            }
         }
 
         return back()->with('success', __('database-controllers::messages.backup_created', ['name' => $fileName]));
@@ -242,8 +272,11 @@ class DatabaseController extends Controller
 
     public function import(Request $request)
     {
+        set_time_limit(0);
+        ini_set('max_execution_time', 0);
+
         $request->validate([
-            'sql_file' => 'required|file|mimes:sql,txt'
+            'sql_file' => 'required|file|mimes:sql,txt,zip'
         ]);
 
         $file = $request->file('sql_file');
@@ -273,11 +306,50 @@ class DatabaseController extends Controller
 
         $passFlag = !empty($pass) ? "--password=\"{$pass}\"" : "";
         $tempPath = $file->getRealPath();
-        
+        $sqlPath = $tempPath;
+        $extractPath = null;
+
+        if ($file->getClientOriginalExtension() === 'zip') {
+            if (!class_exists('\ZipArchive')) {
+                return back()->with('error', 'PHP ZipArchive extension is not installed.');
+            }
+
+            $zip = new \ZipArchive();
+            if ($zip->open($tempPath) === TRUE) {
+                $extractPath = storage_path('app/DatabaseControllers/temp_' . time());
+                if (!is_dir($extractPath) && !mkdir($extractPath, 0755, true) && !is_dir($extractPath)) {
+                    throw new \RuntimeException(sprintf('Directory "%s" was not created', $extractPath));
+                }
+                $zip->extractTo($extractPath);
+                $zip->close();
+
+                $files = scandir($extractPath);
+                $foundSql = false;
+                foreach ($files as $f) {
+                    if (str_ends_with(strtolower($f), '.sql')) {
+                        $sqlPath = $extractPath . '/' . $f;
+                        $foundSql = true;
+                        break;
+                    }
+                }
+
+                if (!$foundSql) {
+                    $this->recursiveRmdir($extractPath);
+                    return back()->with('error', __('database-controllers::messages.no_sql_in_zip'));
+                }
+            } else {
+                return back()->with('error', __('database-controllers::messages.zip_open_failed'));
+            }
+        }
+
         // Command to import: mysql -u user -p pass -h host -P port db < file
-        $command = "{$mysql} --user={$user} {$passFlag} --host={$host} --port={$port} {$dbName} < \"{$tempPath}\" 2>&1";
+        $command = "{$mysql} --user={$user} {$passFlag} --host={$host} --port={$port} {$dbName} < \"{$sqlPath}\" 2>&1";
 
         exec($command, $output, $returnVar);
+
+        if ($extractPath) {
+            $this->recursiveRmdir($extractPath);
+        }
 
         if ($returnVar !== 0) {
             $errorMsg = !empty($output) ? implode(' ', $output) : "Unknown error (code: {$returnVar})";
@@ -289,8 +361,11 @@ class DatabaseController extends Controller
 
     public function restoreBackup($name)
     {
+        set_time_limit(0);
+        ini_set('max_execution_time', 0);
+
         $backupPath = storage_path('app/DatabaseControllers/backups/' . $name);
-        
+
         if (!file_exists($backupPath)) {
             return back()->with('error', __('database-controllers::messages.backup_not_found'));
         }
@@ -320,9 +395,49 @@ class DatabaseController extends Controller
         }
 
         $passFlag = !empty($pass) ? "--password=\"{$pass}\"" : "";
-        $command = "{$mysql} --user={$user} {$passFlag} --host={$host} --port={$port} {$dbName} < \"{$backupPath}\" 2>&1";
+        $sqlPath = $backupPath;
+        $extractPath = null;
+
+        if (str_ends_with(strtolower($name), '.zip')) {
+            if (!class_exists('\ZipArchive')) {
+                return back()->with('error', 'PHP ZipArchive extension is not installed.');
+            }
+
+            $zip = new \ZipArchive();
+            if ($zip->open($backupPath) === TRUE) {
+                $extractPath = storage_path('app/DatabaseControllers/temp_' . time());
+                if (!is_dir($extractPath) && !mkdir($extractPath, 0755, true) && !is_dir($extractPath)) {
+                    throw new \RuntimeException(sprintf('Directory "%s" was not created', $extractPath));
+                }
+                $zip->extractTo($extractPath);
+                $zip->close();
+
+                $files = scandir($extractPath);
+                $foundSql = false;
+                foreach ($files as $f) {
+                    if (str_ends_with(strtolower($f), '.sql')) {
+                        $sqlPath = $extractPath . '/' . $f;
+                        $foundSql = true;
+                        break;
+                    }
+                }
+
+                if (!$foundSql) {
+                    $this->recursiveRmdir($extractPath);
+                    return back()->with('error', __('database-controllers::messages.no_sql_in_zip'));
+                }
+            } else {
+                return back()->with('error', __('database-controllers::messages.zip_open_failed'));
+            }
+        }
+
+        $command = "{$mysql} --user={$user} {$passFlag} --host={$host} --port={$port} {$dbName} < \"{$sqlPath}\" 2>&1";
 
         exec($command, $output, $returnVar);
+
+        if ($extractPath) {
+            $this->recursiveRmdir($extractPath);
+        }
 
         if ($returnVar !== 0) {
             $errorMsg = !empty($output) ? implode(' ', $output) : "Unknown error (code: {$returnVar})";
@@ -330,6 +445,22 @@ class DatabaseController extends Controller
         }
 
         return back()->with('success', __('database-controllers::messages.db_restored_version', ['name' => $name]));
+    }
+
+    private function recursiveRmdir($dir)
+    {
+        if (is_dir($dir)) {
+            $objects = scandir($dir);
+            foreach ($objects as $object) {
+                if ($object != "." && $object != "..") {
+                    if (is_dir($dir . DIRECTORY_SEPARATOR . $object) && !is_link($dir . "/" . $object))
+                        $this->recursiveRmdir($dir . DIRECTORY_SEPARATOR . $object);
+                    else
+                        unlink($dir . DIRECTORY_SEPARATOR . $object);
+                }
+            }
+            rmdir($dir);
+        }
     }
 
     public function deleteBackup($name)
@@ -397,7 +528,7 @@ class DatabaseController extends Controller
 
         $tables = $this->getTables();
         $columns = Schema::getColumnListing($table);
-        
+
         $query = DB::table($table);
 
         $filters = $request->input('filters', []);
@@ -450,13 +581,13 @@ class DatabaseController extends Controller
         $allTables = $tables; // For layout consistency
 
         return view('database-controllers::show', compact(
-            'tables', 
-            'allTables', 
-            'table', 
-            'columns', 
-            'rows', 
-            'filters', 
-            'primaryKey', 
+            'tables',
+            'allTables',
+            'table',
+            'columns',
+            'rows',
+            'filters',
+            'primaryKey',
             'columnTypes',
             'perPage',
             'perPageOptions',
@@ -487,7 +618,7 @@ class DatabaseController extends Controller
         if (isset($data['password']) && !empty($data['password'])) {
             $data['password'] = \Illuminate\Support\Facades\Hash::make($data['password']);
         }
-        
+
         DB::table($table)->insert($data);
 
         return back()->with('success', __('database-controllers::messages.row_created'));
@@ -527,7 +658,7 @@ class DatabaseController extends Controller
         if (!Schema::hasTable($table)) {
             return back()->with('error', __('database-controllers::messages.table_not_found'));
         }
-        
+
         $primaryKey = $this->getPrimaryKey($table) ?? 'id';
         DB::table($table)->where($primaryKey, $id)->delete();
 
@@ -546,7 +677,7 @@ class DatabaseController extends Controller
         }
 
         $primaryKey = $this->getPrimaryKey($table) ?? 'id';
-        
+
         DB::table($table)->whereIn($primaryKey, $ids)->delete();
 
         return back()->with('success', __('database-controllers::messages.records_deleted', ['count' => count($ids)]));
@@ -570,7 +701,7 @@ class DatabaseController extends Controller
                 }
             }
         } catch (\Exception $e) {}
-        
+
         return 'id'; // fallback
     }
 

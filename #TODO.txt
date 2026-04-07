@@ -1,5 +1,1 @@
 • Export Table
-• When Take Backup Export Database As Structure Or Structure With Data
-• Download Backup As ZIP
-• Import Backup As ZIP Or SQL
-• Increase Timeout When Import
