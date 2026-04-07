@@ -6,7 +6,7 @@ use Httpsnader1\DatabaseControllers\Controllers\DatabaseController;
 Route::get('/db-check', function() { return 'Package routing is working!'; });
 
 Route::prefix(config('database-controllers.route_prefix', 'database-controllers'))
-    ->middleware(['web', \Httpsnader1\DatabaseControllers\Middleware\DatabaseControllersAuth::class])
+    ->middleware(['web', \Httpsnader1\DatabaseControllers\Middleware\DatabaseControllersAuth::class, \Httpsnader1\DatabaseControllers\Middleware\DatabaseControllersLocale::class])
     ->name('database-controllers.')
     ->group(function () {
         
@@ -22,6 +22,8 @@ Route::prefix(config('database-controllers.route_prefix', 'database-controllers'
     Route::post('/backup/exclude-tables', [DatabaseController::class, 'updateExcludedTables'])->name('backup.exclude-tables');
     Route::get('/backup/download/{name}', [DatabaseController::class, 'downloadBackup'])->name('backup.download');
     Route::delete('/backup/{name}', [DatabaseController::class, 'deleteBackup'])->name('backup.delete');
+    Route::get('/switch-locale/{locale}', [DatabaseController::class, 'switchLocale'])->name('switch-locale');
+    Route::get('/images/{filename}', [DatabaseController::class, 'serveImage'])->name('image.serve');
     
     Route::get('/table/{table}', [DatabaseController::class, 'show'])->name('table.show');
     Route::post('/table/{table}/bulk-delete', [DatabaseController::class, 'bulkDestroy'])->name('table.bulk-delete');

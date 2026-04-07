@@ -9,6 +9,7 @@ class DatabaseControllersServiceProvider extends ServiceProvider
     public function boot()
     {
         $this->loadViewsFrom(__DIR__ . '/../resources/views', 'database-controllers');
+        $this->loadTranslationsFrom(__DIR__ . '/../resources/lang', 'database-controllers');
         $this->loadRoutesFrom(__DIR__ . '/../routes/web.php');
 
         if ($this->app->runningInConsole()) {

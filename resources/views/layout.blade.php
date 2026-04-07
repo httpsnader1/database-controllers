@@ -1,11 +1,27 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" dir="{{ app()->getLocale() === 'ar' ? 'rtl' : 'ltr' }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Database Controllers - @yield('title')</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Tajawal', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
     <style>
         [x-cloak] { display: none !important; }
         ::-webkit-scrollbar { width: 6px; }
@@ -109,10 +125,10 @@
             :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0 md:w-20'"
         >
             <!-- Sidebar Header -->
-            <div class="h-16 flex items-center px-6 bg-slate-950/50 border-b border-slate-800/50 flex-shrink-0">
+            <div class="h-16 flex items-center gap-3 px-6 bg-slate-950/50 border-b border-slate-800/50 flex-shrink-0">
                 <i class="fa-solid fa-database text-indigo-400 text-xl"></i>
-                <span class="ml-3 font-bold text-lg text-white whitespace-nowrap overflow-hidden transition-all duration-300" x-show="sidebarOpen">
-                    DB<span class="text-indigo-400">Controllers</span>
+                <span class="font-bold text-lg text-white whitespace-nowrap overflow-hidden transition-all duration-300" x-show="sidebarOpen">
+                    Database <span class="text-indigo-400">Controllers</span>
                 </span>
             </div>
 
@@ -121,37 +137,37 @@
                 
                 <!-- Main Menu -->
                 <div class="space-y-3 flex-shrink-0 mb-7">
-                    <h4 class="text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-2 px-2" x-show="sidebarOpen">General</h4>
+                    <h4 class="text-[10px] uppercase font-bold text-slate-500 tracking-wider mb-2 px-2" x-show="sidebarOpen">{{ __('database-controllers::messages.general') }}</h4>
                     <a href="{{ route('database-controllers.index') }}" class="flex items-center px-3 py-2.5 rounded-lg hover:bg-slate-800 hover:text-white transition group @if(Route::is('database-controllers.index')) bg-indigo-600 text-white shadow-lg shadow-indigo-600/20 @endif">
                         <i class="fa-solid fa-gauge w-6 text-center text-lg @if(!Route::is('database-controllers.index')) text-slate-500 group-hover:text-indigo-400 @endif"></i>
-                        <span class="ml-3 font-medium text-sm transition-all duration-300" x-show="sidebarOpen">Dashboard</span>
+                        <span class="ms-3 font-medium text-sm transition-all duration-300" x-show="sidebarOpen">{{ __('database-controllers::messages.dashboard') }}</span>
                     </a>
                     <a href="{{ route('database-controllers.backup') }}" class="flex items-center px-3 py-2.5 rounded-lg hover:bg-slate-800 hover:text-white transition group @if(Route::is('database-controllers.backup')) bg-indigo-600 text-white shadow-lg shadow-indigo-600/20 @endif">
                         <i class="fa-solid fa-cloud-arrow-down w-6 text-center text-lg @if(!Route::is('database-controllers.backup')) text-slate-500 group-hover:text-amber-400 @endif"></i>
-                        <span class="ml-3 font-medium text-sm transition-all duration-300" x-show="sidebarOpen">Backups</span>
+                        <span class="ms-3 font-medium text-sm transition-all duration-300" x-show="sidebarOpen">{{ __('database-controllers::messages.backups') }}</span>
                     </a>
                 </div>
 
-                <!-- Tables List with Search -->
-                <div class="flex-grow flex flex-col min-h-0 space-y-3" x-show="sidebarOpen">
-                    <div class="px-2 flex items-center justify-between">
-                        <h4 class="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Tables</h4>
-                        <span class="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded" x-text="allTables.length"></span>
-                    </div>
+                <!-- Tables Section -->
+                <div class="flex-grow flex flex-col min-h-0 pt-4" x-show="sidebarOpen">
+                    <h3 class="px-3 text-[10px] font-black uppercase tracking-[.2em] text-slate-500 mb-4 flex items-center">
+                        <i class="fa-solid fa-list-ul me-2 text-indigo-500"></i>
+                        {{ __('database-controllers::messages.tables') }}
+                    </h3>
                     
-                    <!-- Table Filter Input -->
-                    <div class="relative px-2">
-                        <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+                    <!-- Search Tables -->
+                    <div class="mb-4 px-1 relative group">
+                        <i class="fa-solid fa-magnifying-glass absolute start-4 top-1/2 -translate-y-1/2 text-slate-500 text-[10px] pointer-events-none group-focus-within:text-indigo-400 transition-colors"></i>
                         <input 
                             type="text" 
-                            x-model="tableSearch" 
-                            placeholder="Filter tables..." 
-                            class="w-full bg-slate-800/50 border border-slate-700/50 rounded-md py-1.5 pl-8 pr-3 text-xs focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-slate-800 outline-none transition text-slate-200"
+                            x-model="tableSearch"
+                            placeholder="{{ __('database-controllers::messages.filter_tables') }}" 
+                            class="w-full bg-slate-800/50 border border-slate-700/50 rounded-lg py-2 ps-9 pe-4 text-xs text-slate-300 focus:outline-none focus:ring-1 focus:ring-indigo-500/50 focus:border-indigo-500/50 focus:bg-slate-800 transition-all font-medium placeholder:text-slate-600"
                         >
                     </div>
 
                     <!-- Filtered Tables List -->
-                    <div class="flex-grow overflow-y-auto px-1 pr-2 scrollbar-thin">
+                    <div class="flex-grow h-[calc(100vh-288px)] overflow-y-auto px-1 ltr:pr-2 rtl:pl-2 scrollbar-thin">
                         <div class="space-y-1">
                             <template x-for="table in allTables.filter(t => t.name.toLowerCase().includes(tableSearch.toLowerCase()))" :key="table.name">
                                 <a 
@@ -159,20 +175,18 @@
                                     class="flex items-center px-3 py-2 rounded-md hover:bg-slate-800 hover:text-white transition text-xs group"
                                     :class="'{{ $table ?? '' }}' == table.name ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/20' : 'text-slate-400'"
                                 >
-                                    <i class="fa-solid fa-table w-4 text-center mr-2 opacity-50 group-hover:opacity-100 group-hover:text-indigo-400"></i>
+                                    <i class="fa-solid fa-table w-4 text-center ltr:mr-2 rtl:ml-2 opacity-50 group-hover:opacity-100 group-hover:text-indigo-400"></i>
                                     <span x-text="table.name" class="truncate flex-grow"></span>
-                                    <span x-text="table.formatted_count" class="text-[9px] font-bold opacity-40 group-hover:opacity-100 ml-2 bg-slate-800 px-1.5 py-0.5 rounded text-slate-300"></span>
-                                    <i class="fa-solid fa-chevron-right ml-2 text-[8px] opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-1 group-hover:translate-x-0"></i>
+                                    <span x-text="table.formatted_count" class="text-[9px] font-bold opacity-40 group-hover:opacity-100 ltr:ml-2 rtl:mr-2 bg-slate-800 px-1.5 py-0.5 rounded text-slate-300"></span>
+                                    <i class="fa-solid fa-chevron-right ms-2 rtl:rotate-180 text-[8px] opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-1 rtl:translate-x-0 group-hover:translate-x-0 rtl:group-hover:-translate-x-1"></i>
                                 </a>
                             </template>
                         </div>
                         <div x-show="allTables.filter(t => t.name.toLowerCase().includes(tableSearch.toLowerCase())).length === 0" class="py-10 text-center text-[10px] text-slate-600 italic">
-                            No tables found
+                            {{ __('database-controllers::messages.no_tables_found') }}
                         </div>
                     </div>
                 </div>
-                <div class="h-6 flex-shrink-0"></div>
-
             </div>
         </aside>
 
@@ -184,13 +198,65 @@
                     <button @click="sidebarOpen = !sidebarOpen" class="text-slate-500 hover:text-slate-800 p-2 rounded-md hover:bg-slate-100 transition">
                         <i class="fa-solid fa-bars-staggered text-xl transition-all duration-300" :class="sidebarOpen ? 'rotate-180' : ''"></i>
                     </button>
-                    <div class="ml-4 h-6 w-px bg-slate-200"></div>
-                    <div class="ml-4 flex items-center space-x-2">
+                    <div class="ms-4 h-6 w-px bg-slate-200"></div>
+                    <div class="ms-4 flex items-center gap-2">
                         <h2 class="text-sm font-bold text-slate-800">@yield('title')</h2>
                     </div>
                 </div>
 
-                <div class="flex items-center space-x-4">
+                <div class="flex items-center gap-4">
+                    <div class="relative" x-data="{ langOpen: false }" @click.away="langOpen = false" @keydown.escape.window="langOpen = false">
+                        @php
+                            $currentFlag = match(app()->getLocale()) {
+                                'en' => ['name' => 'English', 'image' => 'united-states.png'],
+                                'ar' => ['name' => 'العربية', 'image' => 'egypt.png'],
+                                'fr' => ['name' => 'Français', 'image' => 'france.png'],
+                                'es' => ['name' => 'Español', 'image' => 'spain.png']
+                            };
+                        @endphp
+                        <button @click="langOpen = !langOpen" class="flex items-center h-10 px-3 rounded-xl border border-slate-200 transition-all duration-300 hover:border-indigo-500 hover:bg-slate-50 shadow-sm relative group overflow-hidden" :class="darkMode ? 'bg-slate-800 border-slate-700 hover:bg-slate-700' : 'bg-white'">
+                            <img src="{{ route('database-controllers.image.serve', $currentFlag['image']) }}" alt="flag" class="w-5 h-3.5 rounded shadow-sm me-2 transition-all object-cover">
+                            <span class="text-[10px] font-black tracking-widest text-indigo-600 uppercase">{{ $currentFlag['name'] }}</span>
+                            <i class="fa-solid fa-chevron-down ms-2 text-[9px] text-slate-400 transition-transform duration-300" :class="langOpen ? 'rotate-180' : ''"></i>
+                        </button>
+
+                        <div x-show="langOpen" x-cloak 
+                             x-transition:enter="transition ease-out duration-200"
+                             x-transition:enter-start="opacity-0 translate-y-1 scale-95"
+                             x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+                             x-transition:leave="transition ease-in duration-150"
+                             x-transition:leave-start="opacity-100 translate-y-0 scale-100"
+                             x-transition:leave-end="opacity-0 translate-y-1 scale-95"
+                             class="absolute end-0 mt-0.5 w-fit bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] py-2 z-50 overflow-hidden ring-1 ring-slate-950/5"
+                        >
+                            @php
+                                $langs = [
+                                    'en' => ['name' => 'English', 'image' => 'united-states.png'],
+                                    'ar' => ['name' => 'العربية', 'image' => 'egypt.png'],
+                                    'fr' => ['name' => 'Français', 'image' => 'france.png'],
+                                    'es' => ['name' => 'Español', 'image' => 'spain.png']
+                                ];
+                            @endphp
+                            @foreach($langs as $code => $info)
+                                <a href="{{ route('database-controllers.switch-locale', $code) }}" 
+                                   class="{{ app()->getLocale() == $code ? 'bg-indigo-50/50 dark:bg-slate-800/80' : '' }} flex items-center justify-center px-5 py-2.5 text-xs font-bold transition-all duration-200 hover:bg-indigo-50/50 dark:hover:bg-slate-800/80 group"
+                                >
+                                    <div class="flex items-center">
+                                        <div class="me-3 flex flex-col items-center">
+                                            <img src="{{ route('database-controllers.image.serve', $info['image']) }}" class="w-6 h-4 rounded shadow-sm transition-all object-cover">
+                                        </div>
+                                        <div class="flex flex-col">
+                                            <span class="{{ app()->getLocale() == $code ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 dark:text-slate-300' }} text-[9px] uppercase">{{ $info['name'] }}</span>
+                                        </div>
+                                    </div>
+                                </a>
+                                @if(!$loop->last)
+                                    <div class="h-px bg-slate-100 dark:bg-slate-800/50 mx-4 my-1"></div>
+                                @endif
+                            @endforeach
+                        </div>
+                    </div>
+
                     <button @click="toggleMode()" class="p-2 w-10 h-10 rounded-xl border border-slate-200 transition-all duration-300 hover:border-indigo-500 hover:bg-slate-50 relative group overflow-hidden" :class="darkMode ? 'bg-slate-800 border-slate-700 hover:bg-slate-700' : 'bg-white'">
                         <div class="relative w-full h-full">
                             <i class="fa-solid fa-sun absolute inset-0 flex items-center justify-center text-amber-500 transition-all duration-500 transform" :class="darkMode ? '-translate-y-full opacity-0' : 'translate-y-0 opacity-100'"></i>
@@ -200,9 +266,9 @@
                     @if(!empty(config('database-controllers.password')))
                         <form action="{{ route('database-controllers.logout') }}" method="POST">
                             @csrf
-                            <button type="submit" class="flex items-center space-x-2 px-3 py-1.5 rounded-lg border border-transparent hover:border-rose-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 transition duration-300 group">
-                                <span class="text-[11px] font-black uppercase tracking-widest group-hover:mr-1 transition-all">Logout</span>
-                                <i class="fa-solid fa-arrow-right-from-bracket text-base transition-transform group-hover:translate-x-1"></i>
+                            <button type="submit" class="flex items-center gap-3 px-3 py-1.5 rounded-lg border border-transparent hover:border-rose-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 transition duration-300 group">
+                                <span class="text-[11px] font-black uppercase tracking-widest">{{ __('database-controllers::messages.logout') }}</span>
+                                <i class="fa-solid fa-arrow-right-from-bracket rtl:rotate-180 text-base"></i>
                             </button>
                         </form>
                     @endif

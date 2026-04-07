@@ -1,6 +1,6 @@
 @extends('database-controllers::layout')
 
-@section('title', "Table: {$table}")
+@section('title', __('database-controllers::messages.table') . " : {$table}")
 
 @section('content')
 <div x-data="{ 
@@ -108,17 +108,17 @@
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <nav class="flex items-center text-sm font-medium text-slate-500 whitespace-nowrap overflow-x-auto pb-2 md:pb-0">
             <a href="{{ route('database-controllers.index') }}" class="hover:text-indigo-600 flex items-center">
-                <i class="fa-solid fa-home mr-1 text-slate-400"></i> Dashboard
+                <i class="fa-solid fa-home me-1 text-slate-400"></i> {{ __('database-controllers::messages.dashboard') }}
             </a>
-            <i class="fa-solid fa-chevron-right mx-2 text-xs text-slate-300"></i>
+            <i class="fa-solid fa-chevron-right rtl:rotate-180 mx-2 text-xs text-slate-300"></i>
             <span class="text-slate-800 font-bold bg-indigo-50 px-2 py-1 rounded border border-indigo-100 font-mono text-[11px] uppercase tracking-wider">{{ $table }}</span>
         </nav>
         
-        <div class="flex items-center space-x-3">
+        <div class="flex items-center gap-3">
              <div class="flex items-center bg-white border border-slate-200 rounded-lg px-3 py-2 shadow-sm">
-                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mr-2 border-r border-slate-100 pr-2">Rows per page</span>
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest me-2 border-e pe-2 border-slate-100">{{ __('database-controllers::messages.rows_per_page') }}</span>
                 <select 
-                    class="bg-transparent text-sm font-bold text-slate-700 outline-none cursor-pointer pr-4"
+                    class="bg-transparent text-sm font-bold text-slate-700 outline-none cursor-pointer pe-4"
                     @change="let url = new URL(window.location.href); url.searchParams.set('per_page', $event.target.value); window.location.href = url.toString();"
                 >
                     @foreach($perPageOptions as $option)
@@ -128,18 +128,18 @@
              </div>
 
              <button x-show="selectedIds.length > 0" @click="showBulkDeleteModal = true" class="inline-flex items-center justify-center px-4 py-2 bg-rose-50 border border-rose-200 text-rose-600 rounded-lg text-sm font-bold hover:bg-rose-100 transition shadow-sm active:scale-95 animate-fadeIn" x-transition>
-                <i class="fa-solid fa-trash-can mr-2 text-xs"></i> 
-                <span>Delete Selected (<span x-text="selectedIds.length"></span>)</span>
+                <i class="fa-solid fa-trash-can me-2 text-xs"></i> 
+                <span>{{ __('database-controllers::messages.delete_selected') }} (<span x-text="selectedIds.length"></span>)</span>
              </button>
              <button @click="showFilters = !showFilters" class="inline-flex items-center justify-center px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg text-sm font-bold hover:bg-slate-50 transition shadow-sm active:scale-95" :class="showFilters ? 'ring-2 ring-indigo-500 border-indigo-200' : ''">
-                <i class="fa-solid fa-filter mr-2 text-xs" :class="showFilters ? 'text-indigo-600' : 'text-slate-400'"></i> 
-                <span>Filters</span>
+                <i class="fa-solid fa-filter me-2 text-xs" :class="showFilters ? 'text-indigo-600' : 'text-slate-400'"></i> 
+                <span>{{ __('database-controllers::messages.filters') }}</span>
                 @if(count($filters) > 0)
                     <span class="ml-2 bg-indigo-600 text-white text-[10px] px-1.5 py-0.5 rounded-full">{{ count($filters) }}</span>
                 @endif
             </button>
              <button @click="showAddModal = true" class="flex-1 md:flex-none inline-flex items-center justify-center px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold hover:bg-indigo-700 transition shadow-lg active:scale-95 shadow-indigo-200">
-                <i class="fa-solid fa-plus mr-2 text-xs"></i> Add Record
+                <i class="fa-solid fa-plus me-2 text-xs"></i> {{ __('database-controllers::messages.add_row') }}
             </button>
         </div>
     </div>
@@ -149,11 +149,11 @@
         <form method="GET" action="{{ route('database-controllers.table.show', $table) }}">
             <div class="flex items-center justify-between mb-4 border-b pb-3 border-slate-100">
                 <h3 class="font-bold text-slate-800 flex items-center">
-                    <i class="fa-solid fa-filter mr-2 text-indigo-500"></i>
-                    Filters
+                    <i class="fa-solid fa-filter me-2 text-indigo-500"></i>
+                    {{ __('database-controllers::messages.filters') }}
                 </h3>
                 <button type="button" @click="filters.push({column: '', operator: '=', value: ''})" class="text-indigo-600 text-xs font-bold flex items-center hover:bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-100 transition">
-                    <i class="fa-solid fa-plus mr-1 text-[10px]"></i> Add Filter
+                    <i class="fa-solid fa-plus me-1 text-[10px]"></i> {{ __('database-controllers::messages.add_filter') }}
                 </button>
             </div>
             
@@ -161,16 +161,16 @@
                 <template x-for="(filter, index) in filters" :key="index">
                     <div class="flex flex-col md:flex-row items-start md:items-center gap-3 bg-slate-50 p-3 rounded-lg border border-slate-100 relative group animate-fadeIn">
                         <div class="w-full md:w-1/3">
-                            <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1 ml-1">Column</label>
+                            <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1 ms-1">{{ __('database-controllers::messages.column') }}</label>
                             <select :name="'filters['+index+'][column]'" x-model="filter.column" class="w-full text-sm bg-white border border-slate-200 rounded-md py-1.5 px-3 focus:ring-2 focus:ring-indigo-500 font-mono">
-                                <option value="">Select Column</option>
+                                <option value="">{{ __('database-controllers::messages.select_column') }}</option>
                                 @foreach($columns as $col)
                                     <option value="{{ $col }}">{{ $col }}</option>
                                 @endforeach
                             </select>
                         </div>
                         <div class="w-full md:w-1/4">
-                             <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1 ml-1">Operator</label>
+                             <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1 ms-1">{{ __('database-controllers::messages.operator') }}</label>
                             <select :name="'filters['+index+'][operator]'" x-model="filter.operator" class="w-full text-sm bg-white border border-slate-200 rounded-md py-1.5 px-3 focus:ring-2 focus:ring-indigo-500">
                                 <template x-for="op in operators">
                                     <option :value="op" x-text="op" :selected="filter.operator == op"></option>
@@ -178,8 +178,8 @@
                             </select>
                         </div>
                         <div class="w-full md:w-1/3">
-                            <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1 ml-1">Value</label>
-                            <input type="text" :name="'filters['+index+'][value]'" x-model="filter.value" class="w-full text-sm bg-white border border-slate-200 rounded-md py-1.5 px-3 focus:ring-2 focus:ring-indigo-500" placeholder="Search value...">
+                            <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1 ms-1">{{ __('database-controllers::messages.value') }}</label>
+                            <input type="text" :name="'filters['+index+'][value]'" x-model="filter.value" class="w-full text-sm bg-white border border-slate-200 rounded-md py-1.5 px-3 focus:ring-2 focus:ring-indigo-500" placeholder="{{ __('database-controllers::messages.search_value') }}">
                         </div>
                         <button type="button" @click="filters.splice(index, 1)" class="md:mt-5 text-slate-400 hover:text-red-500 transition-colors">
                             <i class="fa-solid fa-circle-xmark text-lg"></i>
@@ -188,17 +188,17 @@
                 </template>
 
                 <div x-show="filters.length === 0" class="py-4 text-center text-slate-400 italic text-sm">
-                    No active filters. Click "+ Add Filter" to narrow down results.
+                    {{ __('database-controllers::messages.no_active_filters') }}
                 </div>
 
-                <div x-show="filters.length > 0" class="flex justify-end pt-4 space-x-3 items-center" x-transition>
+                <div x-show="filters.length > 0" class="flex justify-end pt-4 gap-3 items-center" x-transition>
                     @if(count($filters) > 0)
                         <a href="{{ route('database-controllers.table.show', $table) }}" class="px-5 py-2 text-xs font-bold bg-rose-50 text-rose-500 border border-rose-100 rounded-lg hover:bg-rose-500 hover:text-white hover:border-rose-500 transition-all duration-300 uppercase tracking-widest active:scale-95">
-                            Clear Results
+                            {{ __('database-controllers::messages.clear_results') }}
                         </a>
                     @endif
                     <button type="submit" class="inline-flex items-center px-8 py-2 bg-slate-800 text-white rounded-lg text-sm font-bold hover:bg-slate-900 transition shadow-sm active:scale-95">
-                        <i class="fa-solid fa-magnifying-glass mr-2 text-xs"></i> Apply Filters
+                        <i class="fa-solid fa-magnifying-glass me-2 text-xs"></i> {{ __('database-controllers::messages.apply_filters') }}
                     </button>
                 </div>
             </div>
@@ -222,14 +222,16 @@
                                 @endphp
                                 <a href="{{ request()->fullUrlWithQuery(['sort_by' => $col, 'sort_dir' => $nextDir]) }}" class="flex items-center justify-center w-full h-full px-6 py-4 hover:bg-slate-100/50 transition-colors">
                                     <span class="{{ $isCurrentSort ? 'text-indigo-600 font-black' : 'text-slate-500' }}">{{ $col }}</span>
-                                    <span class="ml-2 flex flex-col text-[8px]">
+                                    <span class="ms-2 flex flex-col text-[8px]">
                                         <i class="fa-solid fa-caret-up {{ $isCurrentSort && $sortDir == 'asc' ? 'text-indigo-600 scale-125' : 'text-slate-300 opacity-0 group-hover:opacity-100' }}"></i>
                                         <i class="fa-solid fa-caret-down {{ $isCurrentSort && $sortDir == 'desc' ? 'text-indigo-600 scale-125' : 'text-slate-300 opacity-0 group-hover:opacity-100' }}"></i>
                                     </span>
                                 </a>
                             </th>
                         @endforeach
-                        <th class="px-6 py-4 text-center sticky right-0 bg-slate-50 shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.05)] border-l border-slate-200">Actions</th>
+                        <th class="px-6 py-4 text-center sticky end-0 border-s rtl:shadow-[4px_0_6px_-2px_rgba(0,0,0,0.05)] ltr:shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.05)] bg-slate-50 border-slate-200 uppercase font-bold text-xs tracking-wider">
+                            {{ __('database-controllers::messages.table_actions') }}
+                        </th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
@@ -251,15 +253,15 @@
                                     @endif
                                 </td>
                             @endforeach
-                            <td class="px-6 py-4 text-center sticky right-0 bg-white group-hover:bg-slate-50 transition shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.05)] border-l border-slate-100" @click.stop="">
-                                <div class="flex items-center justify-center space-x-2">
-                                    <button @click="viewingRow = {{ json_encode($row) }}; showViewModal = true" class="p-2 text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-md transition" title="View Details">
+                            <td class="px-6 py-4 text-center sticky end-0 border-s rtl:shadow-[4px_0_6px_-2px_rgba(0,0,0,0.05)] ltr:shadow-[-4px_0_6px_-2px_rgba(0,0,0,0.05)] bg-white group-hover:bg-slate-50 transition border-slate-100" @click.stop="">
+                                <div class="flex items-center justify-center gap-2">
+                                    <button @click="viewingRow = {{ json_encode($row) }}; showViewModal = true" class="p-2 text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 rounded-md transition" title="{{ __('database-controllers::messages.view_details') }}">
                                         <i class="fa-solid fa-eye"></i>
                                     </button>
-                                    <button @click="editingRow = {{ json_encode($row) }}; showEditModal = true" class="p-2 text-indigo-400 hover:bg-indigo-100 rounded-md transition" title="Edit">
+                                    <button @click="editingRow = {{ json_encode($row) }}; showEditModal = true" class="p-2 text-indigo-400 hover:bg-indigo-100 rounded-md transition" title="{{ __('database-controllers::messages.edit') }}">
                                         <i class="fa-solid fa-pen-to-square"></i>
                                     </button>
-                                    <button @click="deletingId = '{{ $row->$primaryKey }}'; showDeleteModal = true" class="p-2 text-red-500 hover:bg-red-100 rounded-md transition" title="Delete">
+                                    <button @click="deletingId = '{{ $row->$primaryKey }}'; showDeleteModal = true" class="p-2 text-red-500 hover:bg-red-100 rounded-md transition" title="{{ __('database-controllers::messages.delete') }}">
                                         <i class="fa-solid fa-trash-can"></i>
                                     </button>
                                 </div>
@@ -270,7 +272,7 @@
                             <td colspan="{{ count($columns) + 1 }}" class="px-6 py-20 text-center">
                                 <div class="flex flex-col items-center">
                                     <i class="fa-solid fa-database text-4xl text-slate-200 mb-3"></i>
-                                    <p class="text-slate-400 font-medium italic">No rows found in this table that match your criteria.</p>
+                                    <p class="text-slate-400 font-medium italic">{{ __('database-controllers::messages.results') }} (0)</p>
                                 </div>
                             </td>
                         </tr>
@@ -282,9 +284,9 @@
         <!-- Pagination and Summary -->
         <div class="px-6 py-4 bg-slate-50 border-t border-slate-100 flex flex-col md:flex-row items-center justify-between gap-4">
             <div class="text-xs font-bold text-slate-500">
-                Showing <span class="text-indigo-600">{{ number_format($rows->firstItem()) }}</span> 
-                to <span class="text-indigo-600">{{ number_format($rows->lastItem()) }}</span> 
-                of <span class="text-slate-800">{{ number_format($rows->total()) }}</span> results
+                {{ __('database-controllers::messages.showing') }} <span class="text-indigo-600">{{ number_format($rows->firstItem()) }}</span> 
+                {{ __('database-controllers::messages.to') }} <span class="text-indigo-600">{{ number_format($rows->lastItem()) }}</span> 
+                {{ __('database-controllers::messages.of') }} <span class="text-slate-800">{{ number_format($rows->total()) }}</span> {{ __('database-controllers::messages.results') }}
             </div>
             <div>
                 {{ $rows->onEachSide(1)->links('database-controllers::pagination') }}
@@ -300,7 +302,7 @@
             <div class="p-6 border-b border-slate-100 flex items-center justify-between bg-indigo-600 text-white">
                 <h3 class="text-xl font-bold flex items-center">
                     <i class="fa-solid fa-circle-info mr-3 text-indigo-300"></i>
-                    Record Details
+                    {{ __('database-controllers::messages.record_details') }}
                 </h3>
                 <button @click="showViewModal = false" class="text-indigo-200 hover:text-white transition"><i class="fa-solid fa-times text-xl"></i></button>
             </div>
@@ -320,7 +322,7 @@
                 </table>
             </div>
             <div class="p-4 border-t border-slate-100 flex justify-end bg-white">
-                <button @click="showViewModal = false" class="px-8 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-bold hover:bg-indigo-700 transition shadow-lg">Close Details</button>
+                <button @click="showViewModal = false" class="px-8 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-bold hover:bg-indigo-700 transition shadow-lg">{{ __('database-controllers::messages.close_details') }}</button>
             </div>
         </div>
     </div>
@@ -329,7 +331,7 @@
     <div x-show="showAddModal" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm" @keydown.escape.window="showAddModal = false" style="margin-top: 0 !important;">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden animate-fadeIn" @click.away="showAddModal = false">
             <div class="p-6 border-b border-slate-100 flex items-center justify-between bg-indigo-600 text-white">
-                <h3 class="text-xl font-bold flex items-center"><i class="fa-solid fa-plus-circle mr-2"></i> Add New Record to <span class="ml-2 font-mono underline">{{ $table }}</span></h3>
+                <h3 class="text-xl font-bold flex items-center"><i class="fa-solid fa-plus-circle mr-2"></i> {{ __('database-controllers::messages.add_new_record') }} <span class="mx-2 font-mono underline">{{ $table }}</span></h3>
                 <button @click="showAddModal = false" class="text-indigo-200 hover:text-white transition"><i class="fa-solid fa-times text-xl"></i></button>
             </div>
             <form action="{{ route('database-controllers.table.store', $table) }}" method="POST" class="flex flex-col flex-grow overflow-hidden">
@@ -363,8 +365,8 @@
                     @endforeach
                 </div>
                 <div class="p-6 border-t border-slate-100 flex justify-end space-x-3 bg-slate-50">
-                    <button type="button" @click="showAddModal = false" class="px-6 py-2 text-sm font-bold text-slate-500 hover:text-slate-700 transition">Cancel</button>
-                    <button type="submit" class="px-8 py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold hover:bg-indigo-700 transition shadow-lg">Save Record</button>
+                    <button type="button" @click="showAddModal = false" class="px-6 py-2 text-sm font-bold text-slate-500 hover:text-slate-700 transition">{{ __('database-controllers::messages.cancel') }}</button>
+                    <button type="submit" class="px-8 py-2 bg-indigo-600 text-white rounded-lg text-sm font-bold hover:bg-indigo-700 transition shadow-lg">{{ __('database-controllers::messages.save_record') }}</button>
                 </div>
             </form>
         </div>
@@ -374,7 +376,7 @@
     <div x-show="showEditModal" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm" @keydown.escape.window="showEditModal = false" style="margin-top: 0 !important;">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden animate-fadeIn" @click.away="showEditModal = false">
             <div class="p-6 border-b border-slate-100 flex items-center justify-between bg-indigo-700 text-white">
-                <h3 class="text-xl font-bold flex items-center"><i class="fa-solid fa-pen-to-square mr-2"></i> Edit Record #<span x-text="editingRow['{{ $primaryKey }}']" class="ml-1"></span></h3>
+                <h3 class="text-xl font-bold flex items-center"><i class="fa-solid fa-pen-to-square mr-2"></i> {{ __('database-controllers::messages.edit_record') }} #<span x-text="editingRow['{{ $primaryKey }}']" class="ml-1"></span></h3>
                 <button @click="showEditModal = false" class="text-indigo-200 hover:text-white transition"><i class="fa-solid fa-times text-xl"></i></button>
             </div>
             <form :action="'{{ route('database-controllers.table.update', [$table, 'ID']) }}'.replace('ID', editingRow['{{ $primaryKey }}'])" method="POST" class="flex flex-col flex-grow overflow-hidden">
@@ -409,8 +411,8 @@
                     @endforeach
                 </div>
                 <div class="p-6 border-t border-slate-100 flex justify-end space-x-3 bg-slate-50">
-                    <button type="button" @click="showEditModal = false" class="px-6 py-2 text-sm font-bold text-slate-500 hover:text-slate-700 transition">Cancel</button>
-                    <button type="submit" class="px-8 py-2 bg-indigo-700 text-white rounded-lg text-sm font-bold hover:bg-indigo-800 transition shadow-lg">Update Changes</button>
+                    <button type="button" @click="showEditModal = false" class="px-6 py-2 text-sm font-bold text-slate-500 hover:text-slate-700 transition">{{ __('database-controllers::messages.cancel') }}</button>
+                    <button type="submit" class="px-8 py-2 bg-indigo-700 text-white rounded-lg text-sm font-bold hover:bg-indigo-800 transition shadow-lg">{{ __('database-controllers::messages.update_changes') }}</button>
                 </div>
             </form>
         </div>
@@ -423,15 +425,15 @@
                 <div class="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
                     <i class="fa-solid fa-triangle-exclamation text-3xl text-red-600"></i>
                 </div>
-                <h3 class="text-xl font-bold text-slate-800 mb-2">Delete Record?</h3>
-                <p class="text-slate-500 text-sm mb-6">Are you sure you want to delete this record? This action is irreversible.</p>
+                <h3 class="text-xl font-bold text-slate-800 mb-2">{{ __('database-controllers::messages.delete_record_title') }}</h3>
+                <p class="text-slate-500 text-sm mb-6">{{ __('database-controllers::messages.delete_record_confirm') }}</p>
                 <div class="flex flex-col space-y-2">
                     <form :action="'{{ route('database-controllers.table.destroy', [$table, 'ID']) }}'.replace('ID', deletingId)" method="POST" class="w-full">
                         @csrf
                         @method('DELETE')
-                        <button type="submit" class="w-full py-3 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 transition shadow-lg">Yes, Delete now</button>
+                        <button type="submit" class="w-full py-3 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 transition shadow-lg">{{ __('database-controllers::messages.delete_confirm_btn') }}</button>
                     </form>
-                    <button @click="showDeleteModal = false" class="w-full py-3 text-slate-500 font-bold hover:bg-slate-100 rounded-lg transition">Cancel</button>
+                    <button @click="showDeleteModal = false" class="w-full py-3 text-slate-500 font-bold hover:bg-slate-100 rounded-lg transition">{{ __('database-controllers::messages.cancel') }}</button>
                 </div>
             </div>
         </div>

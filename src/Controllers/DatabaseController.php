@@ -28,7 +28,7 @@ class DatabaseController extends Controller
             return redirect()->route('database-controllers.index');
         }
 
-        return back()->with('error', 'Invalid password. Please try again.');
+        return back()->with('error', __('database-controllers::messages.invalid_password'));
     }
 
     public function logout()
@@ -97,13 +97,13 @@ class DatabaseController extends Controller
         $tables = $this->getTables();
         
         $dbInfo = [
-            'Connection' => $activeConnection,
-            'Host' => config("database.connections.{$activeConnection}.host"),
-            'Port' => config("database.connections.{$activeConnection}.port"),
-            'Database' => DB::connection()->getDatabaseName(),
-            'Username' => config("database.connections.{$activeConnection}.username"),
-            'PHP Version' => PHP_VERSION,
-            'Laravel Version' => app()->version(),
+            __('database-controllers::messages.connection') => $activeConnection,
+            __('database-controllers::messages.host') => config("database.connections.{$activeConnection}.host"),
+            __('database-controllers::messages.port') => config("database.connections.{$activeConnection}.port"),
+            __('database-controllers::messages.database') => DB::connection()->getDatabaseName(),
+            __('database-controllers::messages.username') => config("database.connections.{$activeConnection}.username"),
+            __('database-controllers::messages.php_version') => PHP_VERSION,
+            __('database-controllers::messages.laravel_version') => app()->version(),
         ];
         
         $totalRows = 0;
@@ -112,10 +112,10 @@ class DatabaseController extends Controller
         }
 
         $stats = [
-            'Total Tables' => number_format(count($tables)),
-            'Total Records' => number_format($totalRows),
-            'Database Size' => $this->getDatabaseSize(),
-            'Last Backup' => $this->getLastBackupDate(),
+            __('database-controllers::messages.total_tables') => number_format(count($tables)),
+            __('database-controllers::messages.total_records') => number_format($totalRows),
+            __('database-controllers::messages.database_size') => $this->getDatabaseSize(),
+            __('database-controllers::messages.last_backup') => $this->getLastBackupDate(),
         ];
 
         return view('database-controllers::index', compact('dbInfo', 'tables', 'stats'));
@@ -163,7 +163,7 @@ class DatabaseController extends Controller
         $filePath = $folder . '/excluded-tables.json';
         file_put_contents($filePath, json_encode($excluded));
 
-        return back()->with('success', 'Excluded tables updated successfully.');
+        return back()->with('success', __('database-controllers::messages.excluded_tables_updated'));
     }
 
     public function export()
@@ -225,10 +225,10 @@ class DatabaseController extends Controller
             if (str_contains($errorMsg, 'not recognized')) {
                 $errorMsg = "'mysqldump' is not in PATH. Please add it or install it.";
             }
-            return back()->with('error', "Backup failed: {$errorMsg}. [Command: {$command}]");
+            return back()->with('error', __('database-controllers::messages.backup_failed') . " {$errorMsg}. [Command: {$command}]");
         }
 
-        return back()->with('success', "Backup '{$fileName}' created successfully!");
+        return back()->with('success', __('database-controllers::messages.backup_created', ['name' => $fileName]));
     }
 
     public function downloadBackup($name)
@@ -237,7 +237,7 @@ class DatabaseController extends Controller
         if (file_exists($path)) {
             return response()->download($path);
         }
-        return back()->with('error', 'Backup file not found.');
+        return back()->with('error', __('database-controllers::messages.backup_not_found'));
     }
 
     public function import(Request $request)
@@ -281,10 +281,10 @@ class DatabaseController extends Controller
 
         if ($returnVar !== 0) {
             $errorMsg = !empty($output) ? implode(' ', $output) : "Unknown error (code: {$returnVar})";
-            return back()->with('error', "Import failed: {$errorMsg}");
+            return back()->with('error', __('database-controllers::messages.import_failed') . " {$errorMsg}");
         }
 
-        return back()->with('success', "Database restored successfully from '{$file->getClientOriginalName()}'");
+        return back()->with('success', __('database-controllers::messages.db_restored_from', ['name' => $file->getClientOriginalName()]));
     }
 
     public function restoreBackup($name)
@@ -292,7 +292,7 @@ class DatabaseController extends Controller
         $backupPath = storage_path('app/DatabaseControllers/backups/' . $name);
         
         if (!file_exists($backupPath)) {
-            return back()->with('error', "Backup file not found.");
+            return back()->with('error', __('database-controllers::messages.backup_not_found'));
         }
 
         $dbName = DB::connection()->getDatabaseName();
@@ -326,10 +326,10 @@ class DatabaseController extends Controller
 
         if ($returnVar !== 0) {
             $errorMsg = !empty($output) ? implode(' ', $output) : "Unknown error (code: {$returnVar})";
-            return back()->with('error', "Restoration failed: {$errorMsg}");
+            return back()->with('error', __('database-controllers::messages.restoration_failed') . " {$errorMsg}");
         }
 
-        return back()->with('success', "Database successfully restored to backup version '{$name}'");
+        return back()->with('success', __('database-controllers::messages.db_restored_version', ['name' => $name]));
     }
 
     public function deleteBackup($name)
@@ -337,9 +337,9 @@ class DatabaseController extends Controller
         $path = storage_path('app/DatabaseControllers/backups/' . $name);
         if (file_exists($path)) {
             unlink($path);
-            return back()->with('success', 'Backup deleted successfully.');
+            return back()->with('success', __('database-controllers::messages.backup_deleted'));
         }
-        return back()->with('error', 'Backup file not found.');
+        return back()->with('error', __('database-controllers::messages.backup_not_found'));
     }
 
     private function getDatabaseSize()
@@ -362,7 +362,17 @@ class DatabaseController extends Controller
         $pow = min($pow, count($units) - 1);
         $bytes /= (1 << (10 * $pow));
 
-        return round($bytes, $precision) . ' ' . $units[$pow];
+        $unitKey = strtolower($units[$pow]);
+        $localizedUnit = __('database-controllers::messages.' . $unitKey);
+
+        // Fallback if the key doesn't exist (returns the key string itself in Laravel if missing)
+        if ($localizedUnit === 'database-controllers::messages.' . $unitKey) {
+            $localizedUnit = $units[$pow];
+        } else {
+            $localizedUnit = strtoupper($localizedUnit);
+        }
+
+        return round($bytes, $precision) . ' ' . $localizedUnit;
     }
 
     private function getLastBackupDate()
@@ -458,7 +468,7 @@ class DatabaseController extends Controller
     public function store(Request $request, $table)
     {
         if (!Schema::hasTable($table)) {
-            return back()->with('error', 'Table not found.');
+            return back()->with('error', __('database-controllers::messages.table_not_found'));
         }
 
         $data = $request->except('_token', '_method', 'filters', 'page');
@@ -480,13 +490,13 @@ class DatabaseController extends Controller
         
         DB::table($table)->insert($data);
 
-        return back()->with('success', 'Row created successfully!');
+        return back()->with('success', __('database-controllers::messages.row_created'));
     }
 
     public function update(Request $request, $table, $id)
     {
          if (!Schema::hasTable($table)) {
-            return back()->with('error', 'Table not found.');
+            return back()->with('error', __('database-controllers::messages.table_not_found'));
         }
 
         $data = $request->except('_token', '_method', 'filters', 'page');
@@ -509,37 +519,37 @@ class DatabaseController extends Controller
 
         DB::table($table)->where($primaryKey, $id)->update($data);
 
-        return back()->with('success', 'Row updated successfully!');
+        return back()->with('success', __('database-controllers::messages.row_updated'));
     }
 
     public function destroy($table, $id)
     {
         if (!Schema::hasTable($table)) {
-            return back()->with('error', 'Table not found.');
+            return back()->with('error', __('database-controllers::messages.table_not_found'));
         }
         
         $primaryKey = $this->getPrimaryKey($table) ?? 'id';
         DB::table($table)->where($primaryKey, $id)->delete();
 
-        return back()->with('success', 'Row deleted successfully!');
+        return back()->with('success', __('database-controllers::messages.row_deleted'));
     }
 
     public function bulkDestroy(Request $request, $table)
     {
         if (!Schema::hasTable($table)) {
-            return back()->with('error', 'Table not found.');
+            return back()->with('error', __('database-controllers::messages.table_not_found'));
         }
 
         $ids = $request->input('ids', []);
         if (empty($ids)) {
-            return back()->with('error', 'No records selected.');
+            return back()->with('error', __('database-controllers::messages.no_records_selected'));
         }
 
         $primaryKey = $this->getPrimaryKey($table) ?? 'id';
         
         DB::table($table)->whereIn($primaryKey, $ids)->delete();
 
-        return back()->with('success', count($ids) . ' records deleted successfully!');
+        return back()->with('success', __('database-controllers::messages.records_deleted', ['count' => count($ids)]));
     }
 
     private function getPrimaryKey($table)
@@ -562,5 +572,20 @@ class DatabaseController extends Controller
         } catch (\Exception $e) {}
         
         return 'id'; // fallback
+    }
+
+    public function switchLocale($locale)
+    {
+        if (in_array($locale, ['en', 'ar', 'fr', 'es'])) {
+            session(['db_ctrl_locale' => $locale]);
+        }
+        return back();
+    }
+
+    public function serveImage($filename)
+    {
+        $path = __DIR__ . '/../../resources/images/' . $filename;
+        if (!file_exists($path)) abort(404);
+        return response()->file($path, ['Content-Type' => 'image/png']);
     }
 }
