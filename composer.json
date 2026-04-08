@@ -2,6 +2,7 @@
     "name": "httpsnader1/database-controllers",
     "description": "Control your laravel database",
     "type": "library",
+    "license": "MIT",
     "require": {
         "php": "^8.0",
         "illuminate/support": "^8.0|^9.0|^10.0|^11.0|^12.0|^13.0"
