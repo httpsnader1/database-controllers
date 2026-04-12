@@ -292,9 +292,9 @@ class DatabaseController extends Controller
                 throw new \RuntimeException(sprintf('Directory "%s" was not created', $storageFolder));
             }
 
-            $persistentPath = $storageFolder . DIRECTORY_SEPARATOR . time() . '_' . $file->getClientOriginalName();
-            move_uploaded_file($tempPath, $persistentPath);
-            $sqlPath = $persistentPath;
+            $fileName = time() . '_' . $file->getClientOriginalName();
+            $file->move($storageFolder, $fileName);
+            $sqlPath = $storageFolder . DIRECTORY_SEPARATOR . $fileName;
 
             ImportDatabaseJob::dispatch($sqlPath, $dbName, $host, $user, $pass, $port);
 
@@ -335,14 +335,16 @@ class DatabaseController extends Controller
         }
 
         // Perform the import synchronously
-        [$returnVar, $output] = $this->performImport($sqlPath, $dbName, $host, $user, $pass, $port);
+        $result = $this->performImport($sqlPath, $dbName, $host, $user, $pass, $port);
+        $returnVar = $result[0];
+        $outputLines = $result[1];
 
         if ($extractPath) {
             $this->recursiveRmdir($extractPath);
         }
 
         if ($returnVar !== 0) {
-            $errorMsg = !empty($output) ? implode(' ', array_slice($output, 0, 100)) : "Unknown error (code: {$returnVar})";
+            $errorMsg = !empty($outputLines) ? implode(' ', array_slice($outputLines, 0, 100)) : "Unknown error (code: {$returnVar})";
             return back()->with('error', __('database-controllers::messages.import_failed') . " {$errorMsg}");
         }
 
@@ -561,7 +563,9 @@ class DatabaseController extends Controller
         ]);
 
         $output = Artisan::output();
-        return [$exitCode, explode(PHP_EOL, $output)];
+        // Limit output size to prevent memory issues
+        $lines = explode(PHP_EOL, substr($output, 0, 1024 * 1024)); // Limit to 1MB of output
+        return [$exitCode, $lines];
     }
 
     public function show(Request $request, $table)

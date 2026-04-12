@@ -151,14 +151,42 @@ class DbRestoreCommand extends Command
     private function performImport(string $sqlPath, string $dbName, string $host, string $user, string $pass, string $port): array
     {
         $mysql = $this->getBinaryPath('mysql');
-        $passFlag = !empty($pass) ? "--password=\"{$pass}\"" : "";
+        $passFlag = !empty($pass) ? "--password=\"" . str_replace('"', '\\"', $pass) . "\"" : "";
 
         // Optimizations for faster import
         $initCommand = "SET FOREIGN_KEY_CHECKS=0; SET UNIQUE_CHECKS=0; SET AUTOCOMMIT=1;";
 
         $command = "{$mysql} --user={$user} {$passFlag} --host={$host} --port={$port} --max_allowed_packet=512M --binary-mode --connect-timeout=10 --net_buffer_length=1048576 --init-command=\"{$initCommand}\" {$dbName} < \"{$sqlPath}\" 2>&1";
 
-        exec($command, $output, $returnVar);
+        $output = [];
+        $returnVar = 0;
+
+        $descriptorspec = [
+            0 => ["pipe", "r"], // stdin
+            1 => ["pipe", "w"], // stdout
+            2 => ["pipe", "w"]  // stderr
+        ];
+
+        $process = proc_open($command, $descriptorspec, $pipes);
+
+        if (is_resource($process)) {
+            fclose($pipes[0]);
+
+            // Read output line by line to avoid memory issues
+            while ($line = fgets($pipes[1])) {
+                $output[] = trim($line);
+                if (count($output) > 500) {
+                    array_shift($output); // Keep only last 500 lines
+                }
+            }
+            fclose($pipes[1]);
+            fclose($pipes[2]);
+
+            $returnVar = proc_close($process);
+        } else {
+            $returnVar = -1;
+            $output = ['Failed to execute proc_open'];
+        }
 
         return [$returnVar, $output];
     }

@@ -17,6 +17,7 @@ Route::prefix(config('database-controllers.route_prefix', 'database-controllers'
     Route::get('/', [DatabaseController::class, 'index'])->name('index');
     Route::get('/backup', [DatabaseController::class, 'backup'])->name('backup');
     Route::post('/backup/export', [DatabaseController::class, 'export'])->name('backup.export');
+    Route::get('/backup/import', [DatabaseController::class, 'backup'])->name('backup.import.get');
     Route::post('/backup/import', [DatabaseController::class, 'import'])->name('backup.import');
     Route::post('/backup/restore/{name}', [DatabaseController::class, 'restoreBackup'])->name('backup.restore');
     Route::post('/backup/exclude-tables', [DatabaseController::class, 'updateExcludedTables'])->name('backup.exclude-tables');
