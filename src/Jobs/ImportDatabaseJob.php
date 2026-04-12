@@ -38,6 +38,7 @@ class ImportDatabaseJob implements ShouldQueue
             '--user' => $this->user,
             '--pass' => $this->pass,
             '--port' => $this->port,
+            '--drop-tables' => true,
         ]);
 
         if ($this->tempDirToDelete && is_dir($this->tempDirToDelete)) {

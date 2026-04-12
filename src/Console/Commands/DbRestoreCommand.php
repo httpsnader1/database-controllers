@@ -21,7 +21,8 @@ class DbRestoreCommand extends Command
                             {--host= : DB host (defaults to mysql host)}
                             {--user= : DB user (defaults to mysql username)}
                             {--pass= : DB password (defaults to mysql password)}
-                            {--port= : DB port (defaults to mysql port)}';
+                            {--port= : DB port (defaults to mysql port)}
+                            {--drop-tables : Drop all tables before import}';
 
     /**
      * The console command description.
@@ -57,6 +58,11 @@ class DbRestoreCommand extends Command
         $user = $this->option('user') ?: config('database.connections.mysql.username', 'root');
         $pass = $this->option('pass') ?: config('database.connections.mysql.password', '');
         $port = $this->option('port') ?: config('database.connections.mysql.port', '3306');
+        $dropTables = (bool) $this->option('drop-tables');
+
+        if ($dropTables) {
+            $this->dropAllTables($dbName, $host, $user, $pass, $port);
+        }
 
         $sqlPath = $path;
         $extractPath = null;
@@ -155,6 +161,36 @@ class DbRestoreCommand extends Command
         exec($command, $output, $returnVar);
 
         return [$returnVar, $output];
+    }
+
+    private function dropAllTables(string $dbName, string $host, string $user, string $pass, string $port): void
+    {
+        $mysql = $this->getBinaryPath('mysql');
+        $passFlag = !empty($pass) ? "--password=\"{$pass}\"" : "";
+
+        // Get all tables
+        $command = "{$mysql} --user={$user} {$passFlag} --host={$host} --port={$port} -Nse \"SHOW TABLES\" {$dbName}";
+        exec($command, $tables);
+
+        if (empty($tables)) {
+            return;
+        }
+
+        $dropSql = "SET FOREIGN_KEY_CHECKS = 0;\n";
+        foreach ($tables as $table) {
+            $dropSql .= "DROP TABLE IF EXISTS `{$table}`;\n";
+        }
+        $dropSql .= "SET FOREIGN_KEY_CHECKS = 1;\n";
+
+        $tempSqlFile = tempnam(sys_get_temp_dir(), 'drop_tables_') . '.sql';
+        file_put_contents($tempSqlFile, $dropSql);
+
+        $command = "{$mysql} --user={$user} {$passFlag} --host={$host} --port={$port} {$dbName} < \"{$tempSqlFile}\"";
+        exec($command);
+
+        if (file_exists($tempSqlFile)) {
+            unlink($tempSqlFile);
+        }
     }
 
     private function recursiveRmdir(string $dir): void

@@ -557,6 +557,7 @@ class DatabaseController extends Controller
             '--user' => $user,
             '--pass' => $pass,
             '--port' => $port,
+            '--drop-tables' => true,
         ]);
 
         $output = Artisan::output();
