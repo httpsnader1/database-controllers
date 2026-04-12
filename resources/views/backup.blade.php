@@ -14,6 +14,8 @@
     restoringBackup: '',
     isRestoring: false,
     isImporting: false,
+    isUploading: false,
+    uploadProgress: 0,
     selectedFile: null,
     selectedFileSize: 0,
     excludedRows: {{ json_encode($excludedTables) }},
@@ -31,6 +33,87 @@
         const unit = sizeStr.slice(-1).toUpperCase();
         const val = parseFloat(sizeStr);
         return units[unit] ? val * units[unit] : val;
+    },
+    async handleImport(e) {
+        if (this.isFileTooLarge) {
+            e.preventDefault();
+            this.isImporting = true;
+            await this.uploadInChunks();
+        } else {
+            this.isImporting = true;
+        }
+    },
+    async uploadInChunks() {
+        const fileInput = this.$refs.sqlFileInput;
+        const file = fileInput.files[0];
+        if (!file) return;
+
+        this.isUploading = true;
+        this.uploadProgress = 0;
+        const chunkSize = 5 * 1024 * 1024; // 5MB chunks
+        const totalChunks = Math.ceil(file.size / chunkSize);
+        const identifier = Math.random().toString(36).substring(2) + Date.now();
+
+        for (let i = 0; i < totalChunks; i++) {
+            const start = i * chunkSize;
+            const end = Math.min(start + chunkSize, file.size);
+            const chunk = file.slice(start, end);
+
+            const formData = new FormData();
+            formData.append('chunk', chunk);
+            formData.append('index', i);
+            formData.append('total', totalChunks);
+            formData.append('identifier', identifier);
+            formData.append('filename', file.name);
+            formData.append('_token', '{{ csrf_token() }}');
+
+            try {
+                const response = await fetch('{{ route("database-controllers.backup.upload-chunk") }}', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    this.uploadProgress = Math.round(((i + 1) / totalChunks) * 100);
+                    if (i === totalChunks - 1) {
+                        this.finishImport(result.path);
+                    }
+                } else {
+                    alert('Upload failed at chunk ' + (i + 1));
+                    this.isImporting = false;
+                    this.isUploading = false;
+                    return;
+                }
+            } catch (error) {
+                console.error('Upload error:', error);
+                alert('Upload error. Please check console.');
+                this.isImporting = false;
+                this.isUploading = false;
+                return;
+            }
+        }
+    },
+    finishImport(serverPath) {
+        const formData = new FormData();
+        formData.append('sql_file_path', serverPath);
+        formData.append('background', document.getElementById('background_import').checked ? '1' : '0');
+        formData.append('_token', '{{ csrf_token() }}');
+
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '{{ route("database-controllers.backup.import") }}';
+
+        for (const [key, value] of formData.entries()) {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = key;
+            input.value = value;
+            form.appendChild(input);
+        }
+
+        document.body.appendChild(form);
+        form.submit();
     }
 }">
 
@@ -253,7 +336,7 @@
                            x-html="'{{ __('database-controllers::messages.import_zip_sql') }}'.replace('.sql', '<span class=\'font-bold text-slate-800\'>.sql</span>').replace('.zip', '<span class=\'font-bold text-slate-800\'>.zip</span>')"></p>
 
                         <form action="{{ route('database-controllers.backup.import') }}" method="POST"
-                              enctype="multipart/form-data" @submit="isImporting = true; isLoading = true">
+                              enctype="multipart/form-data" @submit="handleImport($event)">
                             @csrf
                             <div class="mb-6">
                                 <label
@@ -275,20 +358,19 @@
                                             </div>
                                         </template>
                                     </div>
-                                    <input type="file" name="sql_file" class="hidden" required accept=".sql,.txt,.zip"
+                                    <input type="file" name="sql_file" class="hidden" required accept=".sql,.txt,.zip" x-ref="sqlFileInput"
                                            @change="selectedFile = $event.target.files[0].name; selectedFileSize = $event.target.files[0].size"/>
                                 </label>
 
                                 <template x-if="isFileTooLarge">
-                                    <div class="mt-4 p-4 bg-rose-50 border border-rose-200 rounded-xl text-start">
-                                        <p class="text-xs text-rose-600 font-bold mb-1">
-                                            <i class="fa-solid fa-triangle-exclamation me-1"></i>
-                                            File size (<span x-text="(selectedFileSize / (1024*1024)).toFixed(2)"></span> MB) exceeds server limits.
+                                    <div class="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl text-start">
+                                        <p class="text-xs text-amber-700 font-bold mb-1">
+                                            <i class="fa-solid fa-circle-info me-1"></i>
+                                            Large file (<span x-text="(selectedFileSize / (1024*1024)).toFixed(2)"></span> MB) detected.
                                         </p>
-                                        <p class="text-[10px] text-rose-500 leading-tight">
-                                            PHP limits: upload_max_filesize=<span x-text="serverLimits.upload_max_filesize"></span>, post_max_size=<span x-text="serverLimits.post_max_size"></span>.
-                                            Importing via browser will likely cause a <b>Connection Reset</b>.
-                                            Please upload the file via FTP to <code class="bg-rose-100 px-1 rounded">storage/app/DatabaseControllers/backups</code> and use the Restore feature instead.
+                                        <p class="text-[10px] text-amber-600 leading-tight">
+                                            PHP limits: upload_max_filesize=<span x-text="serverLimits.upload_max_filesize"></span>.
+                                            We will use <b>Chunked Upload</b> to securely transfer this file without connection resets.
                                         </p>
                                     </div>
                                 </template>
@@ -313,8 +395,6 @@
 
                             <div class="flex flex-col space-y-3">
                                 <button type="submit"
-                                        :disabled="isFileTooLarge && !document.getElementById('background_import').checked"
-                                        :class="isFileTooLarge ? 'opacity-50 cursor-not-allowed' : ''"
                                         class="w-full py-4 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg shadow-indigo-600/20 active:scale-95 transition">{{ __('database-controllers::messages.restore_now_btn') }}</button>
                                 <button type="button" @click="showImportModal = false"
                                         class="w-full py-3 text-slate-400 font-bold hover:bg-slate-50 rounded-xl transition">{{ __('database-controllers::messages.cancel') }}</button>
@@ -324,10 +404,17 @@
 
                     <!-- Loading State -->
                     <div class="p-12 text-center" x-show="isImporting" x-cloak>
-                        <div
-                            class="inline-block animate-spin w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full mb-6"></div>
-                        <h3 class="text-xl font-black text-slate-800 mb-2">{{ __('database-controllers::messages.restoring_data') }}</h3>
-                        <p class="text-slate-500 text-sm">{{ __('database-controllers::messages.restoring_data_desc') }}</p>
+                        <template x-if="!isUploading">
+                            <div class="inline-block animate-spin w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full mb-6"></div>
+                        </template>
+                        <template x-if="isUploading">
+                            <div class="w-full bg-slate-100 rounded-full h-4 mb-6 relative overflow-hidden">
+                                <div class="bg-indigo-600 h-full transition-all duration-300 shadow-sm" :style="'width: ' + uploadProgress + '%'"></div>
+                                <span class="absolute inset-0 flex items-center justify-center text-[10px] font-black text-white mix-blend-difference" x-text="uploadProgress + '%'"></span>
+                            </div>
+                        </template>
+                        <h3 class="text-xl font-black text-slate-800 mb-2" x-text="isUploading ? 'Uploading Data...' : '{{ __('database-controllers::messages.restoring_data') }}'"></h3>
+                        <p class="text-slate-500 text-sm" x-text="isUploading ? 'Please wait while the file is being uploaded in chunks.' : '{{ __('database-controllers::messages.restoring_data_desc') }}'"></p>
                     </div>
                 </div>
             </div>

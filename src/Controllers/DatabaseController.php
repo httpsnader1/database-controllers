@@ -150,6 +150,7 @@ class DatabaseController extends Controller
 
     public function backup()
     {
+        $this->cleanupOldChunks();
         $tables = $this->getTables();
         $backups = [];
         $backupPath = storage_path('app/DatabaseControllers/backups');
@@ -304,11 +305,13 @@ class DatabaseController extends Controller
         ini_set('memory_limit', '-1');
 
         $request->validate([
-            'sql_file' => 'required|file|mimes:sql,txt,zip',
+            'sql_file' => 'required_without:sql_file_path|file|mimes:sql,txt,zip',
+            'sql_file_path' => 'required_without:sql_file|string',
             'background' => 'nullable|boolean'
         ]);
 
         $file = $request->file('sql_file');
+        $sqlFilePathFromRequest = $request->input('sql_file_path');
         $background = (bool) $request->input('background');
         $dbName = DB::connection()->getDatabaseName();
         $host = config("database.connections.mysql.host", '127.0.0.1');
@@ -316,25 +319,38 @@ class DatabaseController extends Controller
         $pass = config("database.connections.mysql.password", '');
         $port = config("database.connections.mysql.port", '3306');
 
-        $tempPath = $file->getRealPath();
-        $sqlPath = $tempPath;
+        if ($sqlFilePathFromRequest) {
+            if (!file_exists($sqlFilePathFromRequest) || !str_contains($sqlFilePathFromRequest, 'DatabaseControllers')) {
+                return back()->with('error', 'Invalid file path.');
+            }
+            $sqlPath = $sqlFilePathFromRequest;
+            $fileName = basename($sqlPath);
+            $isZip = str_ends_with(strtolower($fileName), '.zip');
+        } else {
+            $tempPath = $file->getRealPath();
+            $sqlPath = $tempPath;
+            $fileName = $file->getClientOriginalName();
+            $isZip = $file->getClientOriginalExtension() === 'zip';
+        }
+
         $extractPath = null;
-        $isZip = $file->getClientOriginalExtension() === 'zip';
 
         if ($background) {
-            // Move uploaded file to a persistent temp location
-            $storageFolder = storage_path('app/DatabaseControllers/temp_imports');
-            if (!is_dir($storageFolder) && !mkdir($storageFolder, 0755, true) && !is_dir($storageFolder)) {
-                throw new \RuntimeException(sprintf('Directory "%s" was not created', $storageFolder));
-            }
+            if (!$sqlFilePathFromRequest) {
+                // Move uploaded file to a persistent temp location
+                $storageFolder = storage_path('app/DatabaseControllers/temp_imports');
+                if (!is_dir($storageFolder) && !mkdir($storageFolder, 0755, true) && !is_dir($storageFolder)) {
+                    throw new \RuntimeException(sprintf('Directory "%s" was not created', $storageFolder));
+                }
 
-            $fileName = time() . '_' . $file->getClientOriginalName();
-            $file->move($storageFolder, $fileName);
-            $sqlPath = $storageFolder . DIRECTORY_SEPARATOR . $fileName;
+                $fileName = time() . '_' . $file->getClientOriginalName();
+                $file->move($storageFolder, $fileName);
+                $sqlPath = $storageFolder . DIRECTORY_SEPARATOR . $fileName;
+            }
 
             ImportDatabaseJob::dispatch($sqlPath, $dbName, $host, $user, $pass, $port);
 
-            return back()->with('success', __('database-controllers::messages.job_queued', ['name' => $file->getClientOriginalName()]));
+            return back()->with('success', __('database-controllers::messages.job_queued', ['name' => $fileName]));
         }
 
         if ($isZip) {
@@ -343,7 +359,8 @@ class DatabaseController extends Controller
             }
 
             $zip = new \ZipArchive();
-            if ($zip->open($tempPath) === TRUE) {
+            $pathToOpen = $sqlFilePathFromRequest ?: $tempPath;
+            if ($zip->open($pathToOpen) === TRUE) {
                 $extractPath = storage_path('app/DatabaseControllers/temp_' . time());
                 if (!is_dir($extractPath) && !mkdir($extractPath, 0755, true) && !is_dir($extractPath)) {
                     throw new \RuntimeException(sprintf('Directory "%s" was not created', $extractPath));
@@ -379,12 +396,71 @@ class DatabaseController extends Controller
             $this->recursiveRmdir($extractPath);
         }
 
+        // Cleanup the temp file if it was from chunked upload
+        if ($sqlFilePathFromRequest && file_exists($sqlFilePathFromRequest)) {
+            unlink($sqlFilePathFromRequest);
+        }
+
         if ($returnVar !== 0) {
             $errorMsg = !empty($outputLines) ? implode(' ', array_slice($outputLines, 0, 100)) : "Unknown error (code: {$returnVar})";
             return back()->with('error', __('database-controllers::messages.import_failed') . " {$errorMsg}");
         }
 
-        return back()->with('success', __('database-controllers::messages.db_restored_from', ['name' => $file->getClientOriginalName()]));
+        return back()->with('success', __('database-controllers::messages.db_restored_from', ['name' => $fileName]));
+    }
+
+    public function uploadChunk(Request $request)
+    {
+        $request->validate([
+            'chunk' => 'required|file',
+            'index' => 'required|integer',
+            'total' => 'required|integer',
+            'identifier' => 'required|string',
+            'filename' => 'required|string',
+        ]);
+
+        $chunk = $request->file('chunk');
+        $index = $request->input('index');
+        $total = $request->input('total');
+        $identifier = preg_replace('/[^a-zA-Z0-9_\-]/', '', $request->input('identifier'));
+        $filename = preg_replace('/[^a-zA-Z0-9_\-\.]/', '', $request->input('filename'));
+
+        $tempFolder = storage_path('app/DatabaseControllers/chunks/' . $identifier);
+        if (!is_dir($tempFolder) && !mkdir($tempFolder, 0755, true) && !is_dir($tempFolder)) {
+            throw new \RuntimeException(sprintf('Directory "%s" was not created', $tempFolder));
+        }
+
+        $chunk->move($tempFolder, $index);
+
+        if ($index == $total - 1) {
+            // Reassemble
+            $finalFolder = storage_path('app/DatabaseControllers/temp_imports');
+            if (!is_dir($finalFolder) && !mkdir($finalFolder, 0755, true) && !is_dir($finalFolder)) {
+                throw new \RuntimeException(sprintf('Directory "%s" was not created', $finalFolder));
+            }
+
+            $finalPath = $finalFolder . DIRECTORY_SEPARATOR . time() . '_' . $filename;
+            $out = fopen($finalPath, 'wb');
+
+            for ($i = 0; $i < $total; $i++) {
+                $chunkPath = $tempFolder . DIRECTORY_SEPARATOR . $i;
+                $in = fopen($chunkPath, 'rb');
+                stream_copy_to_stream($in, $out);
+                fclose($in);
+                unlink($chunkPath);
+            }
+
+            fclose($out);
+            rmdir($tempFolder);
+
+            return response()->json([
+                'success' => true,
+                'path' => $finalPath,
+                'filename' => $filename
+            ]);
+        }
+
+        return response()->json(['success' => true]);
     }
 
     public function restoreBackup($name, Request $request)
@@ -479,6 +555,21 @@ class DatabaseController extends Controller
                 }
             }
             rmdir($dir);
+        }
+    }
+
+    private function cleanupOldChunks()
+    {
+        $chunkPath = storage_path('app/DatabaseControllers/chunks');
+        if (!is_dir($chunkPath)) return;
+
+        $folders = scandir($chunkPath);
+        foreach ($folders as $folder) {
+            if ($folder === '.' || $folder === '..') continue;
+            $folderPath = $chunkPath . DIRECTORY_SEPARATOR . $folder;
+            if (is_dir($folderPath) && (time() - filemtime($folderPath) > 86400)) { // 24 hours
+                $this->recursiveRmdir($folderPath);
+            }
         }
     }
 
