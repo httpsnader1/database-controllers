@@ -15,7 +15,23 @@
     isRestoring: false,
     isImporting: false,
     selectedFile: null,
-    excludedRows: {{ json_encode($excludedTables) }}
+    selectedFileSize: 0,
+    excludedRows: {{ json_encode($excludedTables) }},
+    serverLimits: {{ json_encode($serverLimits) }},
+    get isFileTooLarge() {
+        if (!this.selectedFileSize) return false;
+        const maxUpload = this.parseSize(this.serverLimits.upload_max_filesize);
+        const maxPost = this.parseSize(this.serverLimits.post_max_size);
+        const limit = Math.min(maxUpload, maxPost);
+        return this.selectedFileSize > limit;
+    },
+    parseSize(sizeStr) {
+        if (!sizeStr) return 0;
+        const units = { 'K': 1024, 'M': 1024*1024, 'G': 1024*1024*1024 };
+        const unit = sizeStr.slice(-1).toUpperCase();
+        const val = parseFloat(sizeStr);
+        return units[unit] ? val * units[unit] : val;
+    }
 }">
 
         <!-- Action Header -->
@@ -260,8 +276,22 @@
                                         </template>
                                     </div>
                                     <input type="file" name="sql_file" class="hidden" required accept=".sql,.txt,.zip"
-                                           @change="selectedFile = $event.target.files[0].name"/>
+                                           @change="selectedFile = $event.target.files[0].name; selectedFileSize = $event.target.files[0].size"/>
                                 </label>
+
+                                <template x-if="isFileTooLarge">
+                                    <div class="mt-4 p-4 bg-rose-50 border border-rose-200 rounded-xl text-start">
+                                        <p class="text-xs text-rose-600 font-bold mb-1">
+                                            <i class="fa-solid fa-triangle-exclamation me-1"></i>
+                                            File size (<span x-text="(selectedFileSize / (1024*1024)).toFixed(2)"></span> MB) exceeds server limits.
+                                        </p>
+                                        <p class="text-[10px] text-rose-500 leading-tight">
+                                            PHP limits: upload_max_filesize=<span x-text="serverLimits.upload_max_filesize"></span>, post_max_size=<span x-text="serverLimits.post_max_size"></span>.
+                                            Importing via browser will likely cause a <b>Connection Reset</b>.
+                                            Please upload the file via FTP to <code class="bg-rose-100 px-1 rounded">storage/app/DatabaseControllers/backups</code> and use the Restore feature instead.
+                                        </p>
+                                    </div>
+                                </template>
                             </div>
 
                             <div class="bg-rose-50 border border-rose-100 p-4 rounded-xl mb-6 text-center">
@@ -283,6 +313,8 @@
 
                             <div class="flex flex-col space-y-3">
                                 <button type="submit"
+                                        :disabled="isFileTooLarge && !document.getElementById('background_import').checked"
+                                        :class="isFileTooLarge ? 'opacity-50 cursor-not-allowed' : ''"
                                         class="w-full py-4 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg shadow-indigo-600/20 active:scale-95 transition">{{ __('database-controllers::messages.restore_now_btn') }}</button>
                                 <button type="button" @click="showImportModal = false"
                                         class="w-full py-3 text-slate-400 font-bold hover:bg-slate-50 rounded-xl transition">{{ __('database-controllers::messages.cancel') }}</button>

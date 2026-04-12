@@ -62,33 +62,57 @@ class DatabaseController extends Controller
             if (config('database.default') === 'sqlite') {
                 $dbTables = DB::select("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'");
                 $tables = array_map(fn($t) => $t->name, $dbTables);
+
+                $tables = array_values(array_filter($tables, fn($t) => !in_array($t, $excluded)));
+
+                return array_map(function($table) {
+                    try {
+                        $count = DB::table($table)->count();
+                    } catch (\Exception $e) {
+                        $count = 0;
+                    }
+                    return [
+                        'name' => $table,
+                        'count' => $count,
+                        'formatted_count' => number_format($count)
+                    ];
+                }, $tables);
             } else {
-                // For MySQL/MariaDB and others
-                $dbTables = DB::select("SELECT TABLE_NAME as name FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = ?", [$dbName]);
+                // For MySQL/MariaDB and others - use INFORMATION_SCHEMA for much faster retrieval
+                // We use TABLE_ROWS as an estimate to avoid slow COUNT(*) on large databases
+                $dbTables = DB::select("SELECT TABLE_NAME as name, TABLE_ROWS as count FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = ?", [$dbName]);
 
                 if (empty($dbTables)) {
                     // Fallback if INFORMATION_SCHEMA is restricted
                     $tables = Schema::getTableListing();
+                    $tables = array_values(array_filter($tables, fn($t) => !in_array($t, $excluded)));
+
+                    return array_map(function($table) {
+                        try {
+                            $count = DB::table($table)->count();
+                        } catch (\Exception $e) {
+                            $count = 0;
+                        }
+                        return [
+                            'name' => $table,
+                            'count' => $count,
+                            'formatted_count' => number_format($count)
+                        ];
+                    }, $tables);
                 } else {
-                    $tables = array_map(fn($t) => $t->name, $dbTables);
+                    $result = [];
+                    foreach ($dbTables as $t) {
+                        if (!in_array($t->name, $excluded)) {
+                            $result[] = [
+                                'name' => $t->name,
+                                'count' => (int) $t->count,
+                                'formatted_count' => number_format((int) $t->count)
+                            ];
+                        }
+                    }
+                    return $result;
                 }
             }
-
-            $tables = array_values(array_filter($tables, fn($t) => !in_array($t, $excluded)));
-
-            return array_map(function($table) {
-                try {
-                    $count = DB::table($table)->count();
-                } catch (\Exception $e) {
-                    $count = 0;
-                }
-                return [
-                    'name' => $table,
-                    'count' => $count,
-                    'formatted_count' => number_format($count)
-                ];
-            }, $tables);
-
         } catch (\Exception $e) {
             return [];
         }
@@ -134,21 +158,33 @@ class DatabaseController extends Controller
             $files = scandir($backupPath);
             foreach ($files as $file) {
                 if ($file !== '.' && $file !== '..') {
-                    $backups[] = [
-                        'name' => $file,
-                        'size' => $this->formatBytes(filesize($backupPath . '/' . $file)),
-                        'date' => date('Y-m-d H:i:s', filemtime($backupPath . '/' . $file))
-                    ];
+                    $filePath = $backupPath . DIRECTORY_SEPARATOR . $file;
+                    if (file_exists($filePath)) {
+                        $backups[] = [
+                            'name' => $file,
+                            'size' => $this->formatBytes(filesize($filePath)),
+                            'date' => date('Y-m-d H:i:s', filemtime($filePath)),
+                            'timestamp' => filemtime($filePath)
+                        ];
+                    }
                 }
             }
         }
 
-        usort($backups, fn($a, $b) => $b['date'] <=> $a['date']);
+        usort($backups, fn($a, $b) => ($b['timestamp'] ?? 0) <=> ($a['timestamp'] ?? 0));
+
+        $serverLimits = [
+            'upload_max_filesize' => ini_get('upload_max_filesize'),
+            'post_max_size' => ini_get('post_max_size'),
+            'memory_limit' => ini_get('memory_limit'),
+            'max_execution_time' => ini_get('max_execution_time'),
+        ];
 
         return view('database-controllers::backup', [
             'tables' => $tables,
             'backups' => $backups,
-            'excludedTables' => $this->getExcludedTables()
+            'excludedTables' => $this->getExcludedTables(),
+            'serverLimits' => $serverLimits
         ]);
     }
 
